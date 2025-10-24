@@ -4,23 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Building Payment Tracker</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
     <style>
         .rtl { direction: rtl; }
-        .touch-manipulation { touch-action: manipulation; }
-        * { transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1); }
-        .spinner { border: 3px solid #f3f4f6; border-top: 3px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <div id="app"></div>
+
+    <script>
+        // 🔥 REPLACE THIS WITH YOUR FIREBASE CONFIG
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+    </script>
+
     <script type="text/babel">
         const { useState, useEffect } = React;
+
+        // Simple Icons
+        const Icon = ({ name, className = "w-5 h-5" }) => {
+            const icons = {
+                'check-circle': '✓', 'x-circle': '✗', 'clock': '⏰', 'lock': '🔒',
+                'settings': '⚙️', 'plus': '+', 'edit-2': '✏️', 'user': '👤',
+                'trash-2': '🗑️', 'alert-circle': '⚠️', 'eye': '👁️',
+                'chevron-left': '‹', 'chevron-right': '›'
+            };
+            return <span className={`inline-block ${className}`}>{icons[name] || '•'}</span>;
+        };
 
         const PaymentTracker = () => {
           const [currentDate, setCurrentDate] = useState(new Date());
@@ -34,321 +78,690 @@
           const [showMonthlySettings, setShowMonthlySettings] = useState(false);
           const [showManagerSettings, setShowManagerSettings] = useState(false);
           const [loading, setLoading] = useState(true);
-          const [saving, setSaving] = useState(false);
           const [error, setError] = useState(null);
-          const [newProject, setNewProject] = useState({ name: '', nameHe: '', total: '', dueDate: '', description: '', descriptionHe: '' });
+          
+          const [newProject, setNewProject] = useState({
+            name: '', nameHe: '', total: '', dueDate: '', description: '', descriptionHe: ''
+          });
+          
           const [monthlySettings, setMonthlySettings] = useState({ amount: 150, dueDay: 5 });
           const [managerSettings, setManagerSettings] = useState({ newManagerEmail: '', newManagerPassword: '' });
           const [data, setData] = useState(null);
-          const [fileSha, setFileSha] = useState(null);
 
           const texts = {
-            en: { title: 'Building Payment Tracker', login: 'Manager Login', logout: 'Logout', adminPanel: 'Admin Panel', managerPanel: 'Manager Panel', monthlyBills: 'Monthly Bills', specialProjects: 'Special Projects', apartment: 'Apt', paid: 'PAID', unpaid: 'DUE', overdue: 'OVERDUE', progress: 'Progress', total: 'Total', perApartment: 'per apartment', dueDate: 'Due Date', lastUpdated: 'Last updated', password: 'Password', submit: 'Submit', cancel: 'Cancel', save: 'Save', delete: 'Delete', edit: 'Edit', create: 'Create', close: 'Close', daysOverdue: 'days overdue', daysUntilDue: 'days until due', createProject: 'Create Special Project', editMonthly: 'Edit Monthly Bills', manageManagers: 'Manage Managers', projectName: 'Project Name', projectNameHe: 'Project Name (Hebrew)', totalAmount: 'Total Amount', description: 'Description', descriptionHe: 'Description (Hebrew)', monthlyAmount: 'Monthly Amount per Apartment', dueDayOfMonth: 'Due Day of Month', currentManager: 'Current Manager', newManager: 'New Manager Email', newPassword: 'New Manager Password', assignManager: 'Assign New Manager', fillAllFields: 'Please fill all fields', projectCreated: 'Project created!', settingsSaved: 'Settings saved!', managerAssigned: 'Manager assigned!', confirmDelete: 'Delete this project?', loading: 'Loading...', saving: 'Saving...', errorLoading: 'Error loading data', errorSaving: 'Error saving data' },
-            he: { title: 'מעקב תשלומים', login: 'כניסה', logout: 'יציאה', adminPanel: 'ניהול', managerPanel: 'מנהל', monthlyBills: 'חשבונות חודשיים', specialProjects: 'פרויקטים', apartment: 'דירה', paid: 'שולם', unpaid: 'לא שולם', overdue: 'באיחור', progress: 'התקדמות', total: 'סה״כ', perApartment: 'לדירה', dueDate: 'תאריך', lastUpdated: 'עודכן', password: 'סיסמה', submit: 'אישור', cancel: 'ביטול', save: 'שמור', delete: 'מחק', edit: 'ערוך', create: 'צור', close: 'סגור', daysOverdue: 'ימים באיחור', daysUntilDue: 'ימים', createProject: 'פרויקט חדש', editMonthly: 'ערוך חודשי', manageManagers: 'מנהלים', projectName: 'שם', projectNameHe: 'שם עברית', totalAmount: 'סכום', description: 'תיאור', descriptionHe: 'תיאור עברית', monthlyAmount: 'סכום חודשי', dueDayOfMonth: 'יום תשלום', currentManager: 'מנהל נוכחי', newManager: 'מנהל חדש', newPassword: 'סיסמה', assignManager: 'הקצה', fillAllFields: 'מלא שדות', projectCreated: 'נוצר!', settingsSaved: 'נשמר!', managerAssigned: 'הוקצה!', confirmDelete: 'למחוק?', loading: 'טוען...', saving: 'שומר...', errorLoading: 'שגיאה', errorSaving: 'שגיאה' }
+            en: {
+              title: 'Building Payment Tracker', login: 'Manager Login', logout: 'Logout',
+              adminPanel: 'Admin Panel', managerPanel: 'Manager Panel', monthlyBills: 'Monthly Bills',
+              specialProjects: 'Special Projects', apartment: 'Apt', paid: 'PAID', unpaid: 'DUE',
+              overdue: 'OVERDUE', progress: 'Progress', total: 'Total', perApartment: 'per apartment',
+              dueDate: 'Due Date', lastUpdated: 'Last updated', password: 'Password', submit: 'Submit',
+              cancel: 'Cancel', save: 'Save', delete: 'Delete', edit: 'Edit', create: 'Create',
+              daysOverdue: 'days overdue', daysUntilDue: 'days until due',
+              createProject: 'Create Special Project', editMonthly: 'Edit Monthly Bills',
+              manageManagers: 'Manage Managers', projectName: 'Project Name',
+              projectNameHe: 'Project Name (Hebrew)', totalAmount: 'Total Amount',
+              description: 'Description', descriptionHe: 'Description (Hebrew)',
+              monthlyAmount: 'Monthly Amount per Apartment', dueDayOfMonth: 'Due Day of Month',
+              currentManager: 'Current Manager', newManager: 'New Manager Email',
+              newPassword: 'New Manager Password', assignManager: 'Assign New Manager',
+              fillAllFields: 'Please fill all fields', projectCreated: 'Project created successfully!',
+              settingsSaved: 'Settings saved successfully!', managerAssigned: 'New manager assigned successfully!',
+              confirmDelete: 'Are you sure you want to delete this project?',
+              loading: 'Loading data...', errorLoading: 'Error loading data. Please refresh.',
+              viewOnly: 'View Only Mode - Login to make changes', invalidPassword: 'Invalid password'
+            },
+            he: {
+              title: 'מעקב תשלומים בבניין', login: 'כניסת מנהל', logout: 'יציאה',
+              adminPanel: 'פאנל ניהול', managerPanel: 'פאנל מנהל', monthlyBills: 'חשבונות חודשיים',
+              specialProjects: 'פרויקטים מיוחדים', apartment: 'דירה', paid: 'שולם', unpaid: 'טרם שולם',
+              overdue: 'באיחור', progress: 'התקדמות', total: 'סה״כ', perApartment: 'לדירה',
+              dueDate: 'תאריך יעד', lastUpdated: 'עודכן לאחרונה', password: 'סיסמה', submit: 'אישור',
+              cancel: 'ביטול', save: 'שמור', delete: 'מחק', edit: 'ערוך', create: 'צור',
+              daysOverdue: 'ימים באיחור', daysUntilDue: 'ימים עד למועד',
+              createProject: 'צור פרויקט מיוחד', editMonthly: 'ערוך חשבונות חודשיים',
+              manageManagers: 'נהל מנהלים', projectName: 'שם הפרויקט',
+              projectNameHe: 'שם הפרויקט (עברית)', totalAmount: 'סכום כולל',
+              description: 'תיאור', descriptionHe: 'תיאור (עברית)',
+              monthlyAmount: 'סכום חודשי לדירה', dueDayOfMonth: 'יום תשלום בחודש',
+              currentManager: 'מנהל נוכחי', newManager: 'אימייל מנהל חדש',
+              newPassword: 'סיסמה למנהל חדש', assignManager: 'הקצה מנהל חדש',
+              fillAllFields: 'אנא מלא את כל השדות', projectCreated: 'הפרויקט נוצר בהצלחה!',
+              settingsSaved: 'ההגדרות נשמרו בהצלחה!', managerAssigned: 'מנהל חדש הוקצה בהצלחה!',
+              confirmDelete: 'האם אתה בטוח שברצונך למחוק את הפרויקט?',
+              loading: 'טוען נתונים...', errorLoading: 'שגיאה בטעינת נתונים. אנא רענן.',
+              viewOnly: 'מצב צפייה בלבד - התחבר לביצוע שינויים', invalidPassword: 'סיסמה שגויה'
+            }
           };
+
           const t = texts[language];
 
- // NO MORE TOKEN IN CODE!
+          // Load data from Firebase
+          useEffect(() => {
+            const dataRef = database.ref('/');
+            
+            const handleData = (snapshot) => {
+              const firebaseData = snapshot.val();
+              if (firebaseData) {
+                setData(firebaseData);
+                if (firebaseData.monthlyBills) {
+                  const currentMonth = getCurrentMonthKey();
+                  const currentMonthData = firebaseData.monthlyBills[currentMonth];
+                  if (currentMonthData) {
+                    setMonthlySettings({
+                      amount: currentMonthData.amount,
+                      dueDay: currentMonthData.dueDay
+                    });
+                  }
+                }
+              }
+              setLoading(false);
+            };
 
-const loadDataFromGitHub = async () => {
-  try {
-    setLoading(true);
-    setError(null);
-    
-    const response = await fetch('/.netlify/functions/github-api', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'read' })
-    });
-    
-    if (!response.ok) throw new Error('Load failed');
-    
-    const result = await response.json();
-    const content = JSON.parse(atob(result.content));
-    
-    setData(content);
-    setFileSha(result.sha);
-    setLoading(false);
-  } catch (err) {
-    console.error('Load error:', err);
-    setError(t.errorLoading);
-    setLoading(false);
-  }
-};
+            const handleError = (error) => {
+              console.error('Firebase error:', error);
+              setError(t.errorLoading);
+              setLoading(false);
+            };
 
-const saveDataToGitHub = async (newData) => {
-  try {
-    setSaving(true);
-    const content = btoa(JSON.stringify(newData, null, 2));
-    
-    const response = await fetch('/.netlify/functions/github-api', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        action: 'write', 
-        content: content, 
-        sha: fileSha 
-      })
-    });
-    
-    if (!response.ok) throw new Error('Save failed');
-    
-    const result = await response.json();
-    setFileSha(result.content.sha);
-    setSaving(false);
-    return true;
-  } catch (err) {
-    console.error('Save error:', err);
-    alert(t.errorSaving);
-    setSaving(false);
-    return false;
-  }
-};
-          useEffect(() => { loadDataFromGitHub(); }, []);
-          useEffect(() => { lucide.createIcons(); });
+            dataRef.on('value', handleData, handleError);
+            
+            return () => dataRef.off('value', handleData);
+          }, []);
 
-          const getCurrentMonthKey = () => `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-          const formatMonthYear = (dateStr) => new Date(dateStr.split('-')[0], parseInt(dateStr.split('-')[1]) - 1).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', { month: 'long', year: 'numeric' });
-          const changeMonth = (dir) => { const d = new Date(currentDate); d.setMonth(d.getMonth() + dir); setCurrentDate(d); };
-          const getDaysUntilDue = (day) => Math.ceil((new Date(new Date().getFullYear(), new Date().getMonth(), day) - new Date()) / 86400000);
-          const getProjectDaysUntilDue = (date) => Math.ceil((new Date(date) - new Date()) / 86400000);
-          const calculateProgress = (apts) => { const t = Object.keys(apts).length; const p = Object.values(apts).filter(a => a.paid).length; return { paid: p, total: t, percentage: Math.round((p / t) * 100) }; };
-
-          const handleLogin = () => {
-            if (password === data.settings.adminPassword) { setUserRole('admin'); setIsAuthenticated(true); setShowLogin(false); setPassword(''); }
-            else if (password === data.settings.managerPassword) { setUserRole('manager'); setIsAuthenticated(true); setShowLogin(false); setPassword(''); }
-            else alert('Invalid password');
+          const getCurrentMonthKey = () => {
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            return `${year}-${month}`;
           };
 
-          const togglePaymentStatus = async (type, id, num) => {
-            if (!isAuthenticated) return;
-            const newData = { ...data };
-            if (type === 'monthly') {
-              const m = getCurrentMonthKey();
-              if (!newData.monthlyBills[m]) newData.monthlyBills[m] = { amount: monthlySettings.amount, dueDay: monthlySettings.dueDay, apartments: Object.fromEntries([...Array(16)].map((_, i) => [(i + 1).toString(), { paid: false }])) };
-              const s = newData.monthlyBills[m].apartments[num].paid;
-              newData.monthlyBills[m].apartments[num] = { paid: !s, date: !s ? new Date().toISOString().split('T')[0] : undefined, amount: newData.monthlyBills[m].amount };
+          const formatMonthYear = (dateStr) => {
+            const [year, month] = dateStr.split('-');
+            const date = new Date(year, parseInt(month) - 1);
+            return date.toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', { month: 'long', year: 'numeric' });
+          };
+
+          const changeMonth = (direction) => {
+            const newDate = new Date(currentDate);
+            newDate.setMonth(newDate.getMonth() + direction);
+            setCurrentDate(newDate);
+          };
+
+          const getDaysUntilDue = (dueDay) => {
+            const today = new Date();
+            const dueDate = new Date(today.getFullYear(), today.getMonth(), dueDay);
+            return Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+          };
+
+          const getProjectDaysUntilDue = (dueDateStr) => {
+            const today = new Date();
+            const dueDate = new Date(dueDateStr);
+            return Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+          };
+
+          const calculateProgress = (apartments) => {
+            const total = Object.keys(apartments).length;
+            const paid = Object.values(apartments).filter(a => a.paid).length;
+            return { paid, total, percentage: Math.round((paid / total) * 100) };
+          };
+
+          const handleLogin = async () => {
+            if (password === data.settings.adminPassword) {
+              try {
+                await auth.signInAnonymously();
+                setUserRole('admin');
+                setIsAuthenticated(true);
+                setShowLogin(false);
+                setPassword('');
+              } catch (error) {
+                console.error('Auth error:', error);
+                alert('Login failed');
+              }
+            } else if (password === data.settings.managerPassword) {
+              try {
+                await auth.signInAnonymously();
+                setUserRole('manager');
+                setIsAuthenticated(true);
+                setShowLogin(false);
+                setPassword('');
+              } catch (error) {
+                console.error('Auth error:', error);
+                alert('Login failed');
+              }
             } else {
-              const p = newData.projects.find(p => p.id === id);
-              const s = p.apartments[num].paid;
-              p.apartments[num] = { paid: !s, date: !s ? new Date().toISOString().split('T')[0] : undefined, amount: p.perApartment };
+              alert(t.invalidPassword);
             }
-            setData(newData);
-            await saveDataToGitHub(newData);
+          };
+
+          const handleLogout = async () => {
+            await auth.signOut();
+            setIsAuthenticated(false);
+            setUserRole(null);
+            setShowAdminPanel(false);
+          };
+
+          const togglePaymentStatus = async (type, id, apartmentNum) => {
+            if (!isAuthenticated) {
+              alert(t.viewOnly);
+              return;
+            }
+            
+            try {
+              if (type === 'monthly') {
+                const currentMonth = getCurrentMonthKey();
+                const monthRef = database.ref(`monthlyBills/${currentMonth}`);
+                const snapshot = await monthRef.once('value');
+                let monthData = snapshot.val();
+                
+                if (!monthData) {
+                  monthData = {
+                    amount: monthlySettings.amount,
+                    dueDay: monthlySettings.dueDay,
+                    apartments: Object.fromEntries([...Array(16)].map((_, i) => [(i + 1).toString(), { paid: false }]))
+                  };
+                }
+                
+                const currentStatus = monthData.apartments[apartmentNum].paid;
+                monthData.apartments[apartmentNum] = {
+                  paid: !currentStatus,
+                  date: !currentStatus ? new Date().toISOString().split('T')[0] : null,
+                  amount: monthData.amount
+                };
+                
+                await monthRef.set(monthData);
+              } else if (type === 'project') {
+                const projectRef = database.ref('projects');
+                const snapshot = await projectRef.once('value');
+                const projects = snapshot.val() || [];
+                const projectIndex = projects.findIndex(p => p.id === id);
+                
+                if (projectIndex !== -1) {
+                  const currentStatus = projects[projectIndex].apartments[apartmentNum].paid;
+                  projects[projectIndex].apartments[apartmentNum] = {
+                    paid: !currentStatus,
+                    date: !currentStatus ? new Date().toISOString().split('T')[0] : null,
+                    amount: projects[projectIndex].perApartment
+                  };
+                  await projectRef.set(projects);
+                }
+              }
+            } catch (error) {
+              console.error('Update error:', error);
+              alert('Failed to update. Please try again.');
+            }
           };
 
           const handleCreateProject = async () => {
-            if (!newProject.name || !newProject.total || !newProject.dueDate) { alert(t.fillAllFields); return; }
+            if (!newProject.name || !newProject.total || !newProject.dueDate) {
+              alert(t.fillAllFields);
+              return;
+            }
+            
             const total = parseFloat(newProject.total);
-            const proj = { id: `p-${Date.now()}`, name: newProject.name, nameHe: newProject.nameHe || newProject.name, total, perApartment: Math.round((total / 16) * 100) / 100, dueDate: newProject.dueDate, description: newProject.description || '', descriptionHe: newProject.descriptionHe || '', apartments: Object.fromEntries([...Array(16)].map((_, i) => [(i + 1).toString(), { paid: false }])) };
-            const newData = { ...data, projects: [...data.projects, proj] };
-            setData(newData);
-            if (await saveDataToGitHub(newData)) { setNewProject({ name: '', nameHe: '', total: '', dueDate: '', description: '', descriptionHe: '' }); setShowProjectForm(false); alert(t.projectCreated); }
+            const perApartment = Math.round((total / 16) * 100) / 100;
+            const project = {
+              id: `project-${Date.now()}`,
+              name: newProject.name,
+              nameHe: newProject.nameHe || newProject.name,
+              total: total,
+              perApartment: perApartment,
+              dueDate: newProject.dueDate,
+              description: newProject.description || '',
+              descriptionHe: newProject.descriptionHe || newProject.description || '',
+              apartments: Object.fromEntries([...Array(16)].map((_, i) => [(i + 1).toString(), { paid: false }]))
+            };
+            
+            try {
+              const projectsRef = database.ref('projects');
+              const snapshot = await projectsRef.once('value');
+              const projects = snapshot.val() || [];
+              projects.push(project);
+              await projectsRef.set(projects);
+              
+              setNewProject({ name: '', nameHe: '', total: '', dueDate: '', description: '', descriptionHe: '' });
+              setShowProjectForm(false);
+              alert(t.projectCreated);
+            } catch (error) {
+              console.error('Create project error:', error);
+              alert('Failed to create project');
+            }
           };
 
-          const handleDeleteProject = async (id) => { if (window.confirm(t.confirmDelete)) { const newData = { ...data, projects: data.projects.filter(p => p.id !== id) }; setData(newData); await saveDataToGitHub(newData); } };
+          const handleDeleteProject = async (projectId) => {
+            if (window.confirm(t.confirmDelete)) {
+              try {
+                const projectsRef = database.ref('projects');
+                const snapshot = await projectsRef.once('value');
+                const projects = snapshot.val() || [];
+                const filtered = projects.filter(p => p.id !== projectId);
+                await projectsRef.set(filtered);
+              } catch (error) {
+                console.error('Delete project error:', error);
+                alert('Failed to delete project');
+              }
+            }
+          };
 
           const handleSaveMonthlySettings = async () => {
-            const m = getCurrentMonthKey();
-            const newData = { ...data };
-            if (!newData.monthlyBills[m]) newData.monthlyBills[m] = { amount: monthlySettings.amount, dueDay: monthlySettings.dueDay, apartments: Object.fromEntries([...Array(16)].map((_, i) => [(i + 1).toString(), { paid: false }])) };
-            else { newData.monthlyBills[m].amount = monthlySettings.amount; newData.monthlyBills[m].dueDay = monthlySettings.dueDay; }
-            setData(newData);
-            if (await saveDataToGitHub(newData)) { setShowMonthlySettings(false); alert(t.settingsSaved); }
+            const currentMonth = getCurrentMonthKey();
+            try {
+              const monthRef = database.ref(`monthlyBills/${currentMonth}`);
+              const snapshot = await monthRef.once('value');
+              let monthData = snapshot.val();
+              
+              if (!monthData) {
+                monthData = {
+                  amount: monthlySettings.amount,
+                  dueDay: monthlySettings.dueDay,
+                  apartments: Object.fromEntries([...Array(16)].map((_, i) => [(i + 1).toString(), { paid: false }]))
+                };
+              } else {
+                monthData.amount = monthlySettings.amount;
+                monthData.dueDay = monthlySettings.dueDay;
+              }
+              
+              await monthRef.set(monthData);
+              setShowMonthlySettings(false);
+              alert(t.settingsSaved);
+            } catch (error) {
+              console.error('Save settings error:', error);
+              alert('Failed to save settings');
+            }
           };
 
           const handleAssignManager = async () => {
-            if (!managerSettings.newManagerEmail || !managerSettings.newManagerPassword) { alert(t.fillAllFields); return; }
-            const newData = { ...data, settings: { ...data.settings, currentManager: managerSettings.newManagerEmail, managerPassword: managerSettings.newManagerPassword } };
-            setData(newData);
-            if (await saveDataToGitHub(newData)) { setManagerSettings({ newManagerEmail: '', newManagerPassword: '' }); setShowManagerSettings(false); alert(t.managerAssigned); }
+            if (!managerSettings.newManagerEmail || !managerSettings.newManagerPassword) {
+              alert(t.fillAllFields);
+              return;
+            }
+            
+            try {
+              await database.ref('settings').update({
+                currentManager: managerSettings.newManagerEmail,
+                managerPassword: managerSettings.newManagerPassword
+              });
+              
+              setManagerSettings({ newManagerEmail: '', newManagerPassword: '' });
+              setShowManagerSettings(false);
+              alert(t.managerAssigned);
+            } catch (error) {
+              console.error('Assign manager error:', error);
+              alert('Failed to assign manager');
+            }
           };
 
-          if (loading) return (<div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center"><div className="text-center"><div className="spinner mx-auto mb-4"></div><p className="text-slate-600 text-lg">{t.loading}</p></div></div>);
-          if (error) return (<div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4"><div className="bg-white rounded-lg shadow-lg p-6 max-w-md text-center"><i data-lucide="alert-circle" className="w-16 h-16 text-red-500 mx-auto mb-4"></i><h2 className="text-xl font-bold text-slate-800 mb-2">Error</h2><p className="text-slate-600 mb-4">{error}</p><button onClick={() => window.location.reload()} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Refresh</button></div></div>);
+          if (loading) {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="spinner mx-auto mb-4"></div>
+                  <p className="text-slate-600 text-lg">{t.loading}</p>
+                </div>
+              </div>
+            );
+          }
+
+          if (error) {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+                <div className="bg-white rounded-lg shadow-lg p-6 max-w-md text-center">
+                  <span className="text-6xl">⚠️</span>
+                  <h2 className="text-xl font-bold text-slate-800 mb-2 mt-4">Error</h2>
+                  <p className="text-slate-600 mb-4">{error}</p>
+                  <button onClick={() => window.location.reload()} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+                    Refresh Page
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
           if (!data) return null;
 
           const currentMonthKey = getCurrentMonthKey();
-          const currentMonthData = data.monthlyBills[currentMonthKey] || { amount: monthlySettings.amount, dueDay: monthlySettings.dueDay, apartments: Object.fromEntries([...Array(16)].map((_, i) => [(i + 1).toString(), { paid: false }])) };
+          const currentMonthData = data.monthlyBills?.[currentMonthKey] || {
+            amount: monthlySettings.amount,
+            dueDay: monthlySettings.dueDay,
+            apartments: Object.fromEntries([...Array(16)].map((_, i) => [(i + 1).toString(), { paid: false }]))
+          };
+
           const monthlyProgress = calculateProgress(currentMonthData.apartments);
           const daysUntilDue = getDaysUntilDue(currentMonthData.dueDay);
 
           return (
-            <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-4 ${language === 'he' ? 'rtl' : ''}`}>
-              {saving && <div className="fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2"><div className="spinner !w-4 !h-4 !border-2"></div>{t.saving}</div>}
+            <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-4 ${language === 'he' ? 'rtl' : 'ltr'}`}>
+              {!isAuthenticated && (
+                <div className="fixed bottom-4 right-4 bg-orange-100 text-orange-800 px-4 py-2 rounded-lg shadow-lg z-40 text-sm flex items-center gap-2">
+                  <Icon name="eye" className="w-4 h-4" />
+                  {t.viewOnly}
+                </div>
+              )}
               
               <div className="max-w-6xl mx-auto">
-                <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4">
+                {/* Header */}
+                <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                     <h1 className="text-xl sm:text-3xl font-bold text-slate-800">{t.title}</h1>
-                    <div className="flex gap-2">
-                      <button onClick={() => setLanguage(language === 'en' ? 'he' : 'en')} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs sm:text-sm font-medium">{language === 'en' ? 'עברית' : 'English'}</button>
-                      {isAuthenticated ? (<><button onClick={() => setShowAdminPanel(!showAdminPanel)} className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2"><i data-lucide="settings" className="w-4 h-4"></i>{userRole === 'admin' ? t.adminPanel : t.managerPanel}</button><button onClick={() => { setIsAuthenticated(false); setUserRole(null); setShowAdminPanel(false); }} className="px-3 py-2 bg-red-100 text-red-700 rounded-lg text-xs sm:text-sm font-medium">{t.logout}</button></>) : (<button onClick={() => setShowLogin(true)} className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2"><i data-lucide="lock" className="w-4 h-4"></i>{t.login}</button>)}
+                    <div className="flex gap-2 flex-wrap">
+                      <button onClick={() => setLanguage(language === 'en' ? 'he' : 'en')} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs sm:text-sm font-medium">
+                        {language === 'en' ? 'עברית' : 'English'}
+                      </button>
+                      {isAuthenticated ? (
+                        <>
+                          <button onClick={() => setShowAdminPanel(!showAdminPanel)} className="px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2">
+                            <Icon name="settings" className="w-4 h-4" />
+                            {userRole === 'admin' ? t.adminPanel : t.managerPanel}
+                          </button>
+                          <button onClick={handleLogout} className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs sm:text-sm font-medium">
+                            {t.logout}
+                          </button>
+                        </>
+                      ) : (
+                        <button onClick={() => setShowLogin(true)} className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2">
+                          <Icon name="lock" className="w-4 h-4" />
+                          {t.login}
+                        </button>
+                      )}
                     </div>
                   </div>
-                  
+
                   {showAdminPanel && isAuthenticated && (
                     <div className="mt-4 p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
                       <h3 className="text-lg font-bold text-purple-900 mb-3">{userRole === 'admin' ? t.adminPanel : t.managerPanel}</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <button onClick={() => setShowProjectForm(true)} className="px-4 py-3 bg-blue-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"><i data-lucide="plus" className="w-5 h-5"></i>{t.createProject}</button>
-                        <button onClick={() => setShowMonthlySettings(true)} className="px-4 py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"><i data-lucide="edit-2" className="w-5 h-5"></i>{t.editMonthly}</button>
-                        {userRole === 'admin' && <button onClick={() => setShowManagerSettings(true)} className="px-4 py-3 bg-orange-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"><i data-lucide="user" className="w-5 h-5"></i>{t.manageManagers}</button>}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <button onClick={() => setShowProjectForm(true)} className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                          <Icon name="plus" className="w-5 h-5" />
+                          {t.createProject}
+                        </button>
+                        <button onClick={() => setShowMonthlySettings(true)} className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                          <Icon name="edit-2" className="w-5 h-5" />
+                          {t.editMonthly}
+                        </button>
+                        {userRole === 'admin' && (
+                          <button onClick={() => setShowManagerSettings(true)} className="px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                            <Icon name="user" className="w-5 h-5" />
+                            {t.manageManagers}
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="flex items-center justify-center gap-4 mt-4">
-                    <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-slate-100 rounded-lg"><i data-lucide="chevron-left" className="w-6 h-6"></i></button>
-                    <h2 className="text-base sm:text-xl font-semibold text-slate-700 min-w-[180px] text-center">{formatMonthYear(currentMonthKey)}</h2>
-                    <button onClick={() => changeMonth(1)} className="p-2 hover:bg-slate-100 rounded-lg"><i data-lucide="chevron-right" className="w-6 h-6"></i></button>
+                    <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-slate-100 rounded-lg">
+                      <Icon name="chevron-left" className="w-6 h-6" />
+                    </button>
+                    <h2 className="text-base sm:text-xl font-semibold text-slate-700 min-w-[180px] sm:min-w-[200px] text-center">
+                      {formatMonthYear(currentMonthKey)}
+                    </h2>
+                    <button onClick={() => changeMonth(1)} className="p-2 hover:bg-slate-100 rounded-lg">
+                      <Icon name="chevron-right" className="w-6 h-6" />
+                    </button>
                   </div>
                 </div>
 
+                {/* Login Modal */}
                 {showLogin && (
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
-                      <h3 className="text-lg font-bold mb-4">{t.login}</h3>
-                      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} placeholder={t.password} className="w-full px-4 py-3 border rounded-lg mb-4" />
+                      <h3 className="text-lg sm:text-xl font-bold mb-4">{t.login}</h3>
+                      <input 
+                        type="password" 
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)} 
+                        onKeyPress={(e) => e.key === 'Enter' && handleLogin()} 
+                        placeholder={t.password} 
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg mb-4 text-base" 
+                      />
                       <div className="flex gap-2">
-                        <button onClick={handleLogin} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium">{t.submit}</button>
-                        <button onClick={() => { setShowLogin(false); setPassword(''); }} className="flex-1 px-4 py-3 bg-slate-200 rounded-lg font-medium">{t.cancel}</button>
+                        <button onClick={handleLogin} className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+                          {t.submit}
+                        </button>
+                        <button onClick={() => { setShowLogin(false); setPassword(''); }} className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium">
+                          {t.cancel}
+                        </button>
                       </div>
-                      <p className="text-xs text-slate-500 mt-4">admin123 or manager123</p>
                     </div>
                   </div>
                 )}
 
+                {/* Project Form Modal */}
                 {showProjectForm && (
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
                     <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-2xl my-8">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-bold">{t.createProject}</h3>
-                        <button onClick={() => setShowProjectForm(false)} className="p-2 hover:bg-slate-100 rounded-lg"><i data-lucide="x-circle" className="w-6 h-6"></i></button>
-                      </div>
+                      <h3 className="text-lg sm:text-xl font-bold mb-4">{t.createProject}</h3>
                       <div className="space-y-4">
-                        <div><label className="block text-sm font-medium mb-1">{t.projectName}</label><input type="text" value={newProject.name} onChange={(e) => setNewProject({...newProject, name: e.target.value})} className="w-full px-4 py-3 border rounded-lg" /></div>
-                        <div><label className="block text-sm font-medium mb-1">{t.projectNameHe}</label><input type="text" value={newProject.nameHe} onChange={(e) => setNewProject({...newProject, nameHe: e.target.value})} className="w-full px-4 py-3 border rounded-lg" /></div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div><label className="block text-sm font-medium mb-1">{t.totalAmount}</label><input type="number" value={newProject.total} onChange={(e) => setNewProject({...newProject, total: e.target.value})} className="w-full px-4 py-3 border rounded-lg" />{newProject.total && <p className="text-xs text-slate-500 mt-1">${(parseFloat(newProject.total) / 16).toFixed(2)} {t.perApartment}</p>}</div>
-                          <div><label className="block text-sm font-medium mb-1">{t.dueDate}</label><input type="date" value={newProject.dueDate} onChange={(e) => setNewProject({...newProject, dueDate: e.target.value})} className="w-full px-4 py-3 border rounded-lg" /></div>
-                        </div>
-                        <div><label className="block text-sm font-medium mb-1">{t.description}</label><textarea value={newProject.description} onChange={(e) => setNewProject({...newProject, description: e.target.value})} className="w-full px-4 py-3 border rounded-lg" rows="2" /></div>
-                        <div><label className="block text-sm font-medium mb-1">{t.descriptionHe}</label><textarea value={newProject.descriptionHe} onChange={(e) => setNewProject({...newProject, descriptionHe: e.target.value})} className="w-full px-4 py-3 border rounded-lg" rows="2" /></div>
+                        <input type="text" placeholder={t.projectName} value={newProject.name} onChange={(e) => setNewProject({...newProject, name: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg" />
+                        <input type="text" placeholder={t.projectNameHe} value={newProject.nameHe} onChange={(e) => setNewProject({...newProject, nameHe: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg" />
+                        <input type="number" placeholder={t.totalAmount} value={newProject.total} onChange={(e) => setNewProject({...newProject, total: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg" />
+                        <input type="date" value={newProject.dueDate} onChange={(e) => setNewProject({...newProject, dueDate: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg" />
+                        <textarea placeholder={t.description} value={newProject.description} onChange={(e) => setNewProject({...newProject, description: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg" rows="3"></textarea>
+                        <textarea placeholder={t.descriptionHe} value={newProject.descriptionHe} onChange={(e) => setNewProject({...newProject, descriptionHe: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg" rows="3"></textarea>
                       </div>
-                      <div className="flex gap-2 mt-6">
-                        <button onClick={handleCreateProject} disabled={saving} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"><i data-lucide="save" className="w-5 h-5"></i>{t.create}</button>
-                        <button onClick={() => setShowProjectForm(false)} className="flex-1 px-4 py-3 bg-slate-200 rounded-lg font-medium">{t.cancel}</button>
+                      <div className="flex gap-2 mt-4">
+                        <button onClick={handleCreateProject} className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">{t.create}</button>
+                        <button onClick={() => setShowProjectForm(false)} className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium">{t.cancel}</button>
                       </div>
                     </div>
                   </div>
                 )}
 
+                {/* Monthly Settings Modal */}
                 {showMonthlySettings && (
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-bold">{t.editMonthly}</h3>
-                        <button onClick={() => setShowMonthlySettings(false)} className="p-2 hover:bg-slate-100 rounded-lg"><i data-lucide="x-circle" className="w-6 h-6"></i></button>
-                      </div>
+                      <h3 className="text-lg sm:text-xl font-bold mb-4">{t.editMonthly}</h3>
                       <div className="space-y-4">
-                        <div><label className="block text-sm font-medium mb-1">{t.monthlyAmount}</label><input type="number" value={monthlySettings.amount} onChange={(e) => setMonthlySettings({...monthlySettings, amount: parseFloat(e.target.value)})} className="w-full px-4 py-3 border rounded-lg" /></div>
-                        <div><label className="block text-sm font-medium mb-1">{t.dueDayOfMonth}</label><input type="number" min="1" max="31" value={monthlySettings.dueDay} onChange={(e) => setMonthlySettings({...monthlySettings, dueDay: parseInt(e.target.value)})} className="w-full px-4 py-3 border rounded-lg" /></div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">{t.monthlyAmount}</label>
+                          <input type="number" value={monthlySettings.amount} onChange={(e) => setMonthlySettings({...monthlySettings, amount: parseFloat(e.target.value)})} className="w-full px-4 py-3 border border-slate-300 rounded-lg" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">{t.dueDayOfMonth}</label>
+                          <input type="number" min="1" max="31" value={monthlySettings.dueDay} onChange={(e) => setMonthlySettings({...monthlySettings, dueDay: parseInt(e.target.value)})} className="w-full px-4 py-3 border border-slate-300 rounded-lg" />
+                        </div>
                       </div>
-                      <div className="flex gap-2 mt-6">
-                        <button onClick={handleSaveMonthlySettings} disabled={saving} className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"><i data-lucide="save" className="w-5 h-5"></i>{t.save}</button>
-                        <button onClick={() => setShowMonthlySettings(false)} className="flex-1 px-4 py-3 bg-slate-200 rounded-lg font-medium">{t.cancel}</button>
+                      <div className="flex gap-2 mt-4">
+                        <button onClick={handleSaveMonthlySettings} className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium">{t.save}</button>
+                        <button onClick={() => setShowMonthlySettings(false)} className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium">{t.cancel}</button>
                       </div>
                     </div>
                   </div>
                 )}
 
+                {/* Manager Settings Modal */}
                 {showManagerSettings && userRole === 'admin' && (
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-bold">{t.manageManagers}</h3>
-                        <button onClick={() => setShowManagerSettings(false)} className="p-2 hover:bg-slate-100 rounded-lg"><i data-lucide="x-circle" className="w-6 h-6"></i></button>
-                      </div>
-                      <div className="mb-4 p-3 bg-slate-100 rounded-lg">
-                        <p className="text-sm text-slate-600">{t.currentManager}:</p>
-                        <p className="font-semibold">{data.settings.currentManager}</p>
-                      </div>
+                      <h3 className="text-lg sm:text-xl font-bold mb-4">{t.manageManagers}</h3>
                       <div className="space-y-4">
-                        <div><label className="block text-sm font-medium mb-1">{t.newManager}</label><input type="email" value={managerSettings.newManagerEmail} onChange={(e) => setManagerSettings({...managerSettings, newManagerEmail: e.target.value})} className="w-full px-4 py-3 border rounded-lg" /></div>
-                        <div><label className="block text-sm font-medium mb-1">{t.newPassword}</label><input type="text" value={managerSettings.newManagerPassword} onChange={(e) => setManagerSettings({...managerSettings, newManagerPassword: e.target.value})} className="w-full px-4 py-3 border rounded-lg" /></div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">{t.currentManager}</label>
+                          <div className="px-4 py-3 bg-slate-100 rounded-lg">{data.settings.currentManager}</div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">{t.newManager}</label>
+                          <input type="email" value={managerSettings.newManagerEmail} onChange={(e) => setManagerSettings({...managerSettings, newManagerEmail: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">{t.newPassword}</label>
+                          <input type="password" value={managerSettings.newManagerPassword} onChange={(e) => setManagerSettings({...managerSettings, newManagerPassword: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg" />
+                        </div>
                       </div>
-                      <div className="flex gap-2 mt-6">
-                        <button onClick={handleAssignManager} disabled={saving} className="flex-1 px-4 py-3 bg-orange-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"><i data-lucide="user" className="w-5 h-5"></i>{t.assignManager}</button>
-                        <button onClick={() => setShowManagerSettings(false)} className="flex-1 px-4 py-3 bg-slate-200 rounded-lg font-medium">{t.cancel}</button>
+                      <div className="flex gap-2 mt-4">
+                        <button onClick={handleAssignManager} className="flex-1 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium">{t.assignManager}</button>
+                        <button onClick={() => setShowManagerSettings(false)} className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium">{t.cancel}</button>
                       </div>
                     </div>
                   </div>
                 )}
 
-                <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4">
+                {/* Monthly Bills Section */}
+                <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
-                    <h2 className="text-xl sm:text-2xl font-bold">{t.monthlyBills}</h2>
-                    {daysUntilDue < 0 ? <div className="flex items-center gap-2 text-red-600 font-semibold"><i data-lucide="alert-circle" className="w-5 h-5"></i>{Math.abs(daysUntilDue)} {t.daysOverdue}</div> : daysUntilDue <= 3 ? <div className="flex items-center gap-2 text-orange-600 font-semibold"><i data-lucide="clock" className="w-5 h-5"></i>{daysUntilDue} {t.daysUntilDue}</div> : null}
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-800">{t.monthlyBills}</h2>
+                    {daysUntilDue < 0 ? (
+                      <div className="flex items-center gap-2 text-red-600 font-semibold text-sm sm:text-base">
+                        <Icon name="alert-circle" className="w-5 h-5" />
+                        {Math.abs(daysUntilDue)} {t.daysOverdue}
+                      </div>
+                    ) : daysUntilDue <= 3 ? (
+                      <div className="flex items-center gap-2 text-orange-600 font-semibold text-sm sm:text-base">
+                        <Icon name="clock" className="w-5 h-5" />
+                        {daysUntilDue} {t.daysUntilDue}
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="mb-4">
+                  <div className="mb-4 sm:mb-6">
                     <div className="flex justify-between items-center mb-2 text-xs sm:text-sm">
-                      <span>{t.progress}: {monthlyProgress.paid}/{monthlyProgress.total} ({monthlyProgress.percentage}%)</span>
-                      <span>${monthlyProgress.paid * currentMonthData.amount} / ${monthlyProgress.total * currentMonthData.amount}</span>
+                      <span className="font-medium text-slate-600">{t.progress}: {monthlyProgress.paid}/{monthlyProgress.total} ({monthlyProgress.percentage}%)</span>
+                      <span className="font-medium text-slate-600">${monthlyProgress.paid * currentMonthData.amount} / ${monthlyProgress.total * currentMonthData.amount}</span>
                     </div>
-                    <div className="h-3 bg-slate-200 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500" style={{ width: `${monthlyProgress.percentage}%` }}></div></div>
+                    <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500" style={{ width: `${monthlyProgress.percentage}%` }}></div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
                     {Object.entries(currentMonthData.apartments).map(([num, apt]) => (
-                      <div key={num} onClick={() => isAuthenticated && togglePaymentStatus('monthly', null, num)} className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${apt.paid ? 'bg-green-50 border-green-500' : daysUntilDue < 0 ? 'bg-red-50 border-red-500' : 'bg-slate-50 border-slate-300'} ${isAuthenticated ? 'cursor-pointer' : ''}`}>
+                      <div 
+                        key={num} 
+                        onClick={() => togglePaymentStatus('monthly', null, num)} 
+                        className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
+                          apt.paid 
+                            ? 'bg-green-50 border-green-500' 
+                            : daysUntilDue < 0 
+                              ? 'bg-red-50 border-red-500' 
+                              : 'bg-slate-50 border-slate-300'
+                        } ${isAuthenticated ? 'cursor-pointer hover:shadow-lg active:scale-95' : 'cursor-default'}`}
+                      >
                         <div className="text-center">
-                          <div className="text-base sm:text-lg font-bold mb-1">{t.apartment} {num}</div>
-                          <div className="flex justify-center mb-1">{apt.paid ? <i data-lucide="check" className="w-5 h-5 text-green-600"></i> : daysUntilDue < 0 ? <i data-lucide="x" className="w-5 h-5 text-red-600"></i> : <i data-lucide="clock" className="w-5 h-5 text-orange-500"></i>}</div>
-                          <div className={`text-xs font-semibold ${apt.paid ? 'text-green-700' : daysUntilDue < 0 ? 'text-red-700' : 'text-orange-600'}`}>{apt.paid ? t.paid : daysUntilDue < 0 ? t.overdue : t.unpaid}</div>
-                          {apt.paid && apt.date && <div className="text-xs text-slate-500 mt-1">{new Date(apt.date).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', { month: 'short', day: 'numeric' })}</div>}
-                          <div className="text-xs sm:text-sm font-semibold text-slate-600 mt-1">${apt.amount || currentMonthData.amount}</div>
+                          <div className="text-base sm:text-lg font-bold text-slate-700 mb-1 sm:mb-2">
+                            {t.apartment} {num}
+                          </div>
+                          <div className="flex justify-center mb-1 sm:mb-2">
+                            {apt.paid ? (
+                              <Icon name="check-circle" className="w-6 h-6 text-green-600" />
+                            ) : daysUntilDue < 0 ? (
+                              <Icon name="x-circle" className="w-6 h-6 text-red-600" />
+                            ) : (
+                              <Icon name="clock" className="w-6 h-6 text-orange-500" />
+                            )}
+                          </div>
+                          <div className={`text-xs font-semibold ${
+                            apt.paid 
+                              ? 'text-green-700' 
+                              : daysUntilDue < 0 
+                                ? 'text-red-700' 
+                                : 'text-orange-600'
+                          }`}>
+                            {apt.paid ? t.paid : daysUntilDue < 0 ? t.overdue : t.unpaid}
+                          </div>
+                          {apt.paid && apt.date && (
+                            <div className="text-xs text-slate-500 mt-1">
+                              {new Date(apt.date).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', { month: 'short', day: 'numeric' })}
+                            </div>
+                          )}
+                          <div className="text-xs sm:text-sm font-semibold text-slate-600 mt-1">
+                            ${apt.amount || currentMonthData.amount}
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {data.projects.map(project => {
+                {/* Projects Section */}
+                {data.projects && data.projects.map(project => {
                   const projectProgress = calculateProgress(project.apartments);
                   const projectDaysUntil = getProjectDaysUntilDue(project.dueDate);
                   return (
-                    <div key={project.id} className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4">
+                    <div key={project.id} className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
                       <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <h2 className="text-xl sm:text-2xl font-bold">{language === 'he' ? project.nameHe : project.name}</h2>
-                            {isAuthenticated && <button onClick={() => handleDeleteProject(project.id)} className="p-1 hover:bg-red-100 rounded text-red-600"><i data-lucide="trash-2" className="w-5 h-5"></i></button>}
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h2 className="text-xl sm:text-2xl font-bold text-slate-800">
+                                {language === 'he' ? project.nameHe : project.name}
+                              </h2>
+                              {isAuthenticated && (
+                                <button onClick={() => handleDeleteProject(project.id)} className="p-1 hover:bg-red-100 rounded text-red-600">
+                                  <Icon name="trash-2" className="w-5 h-5" />
+                                </button>
+                              )}
+                            </div>
                           </div>
-                          {projectDaysUntil < 0 ? <div className="flex items-center gap-2 text-red-600 font-semibold"><i data-lucide="alert-circle" className="w-5 h-5"></i>{Math.abs(projectDaysUntil)} {t.daysOverdue}</div> : projectDaysUntil <= 7 ? <div className="flex items-center gap-2 text-orange-600 font-semibold"><i data-lucide="clock" className="w-5 h-5"></i>{projectDaysUntil} {t.daysUntilDue}</div> : null}
+                          {projectDaysUntil < 0 ? (
+                            <div className="flex items-center gap-2 text-red-600 font-semibold text-sm sm:text-base">
+                              <Icon name="alert-circle" className="w-5 h-5" />
+                              {Math.abs(projectDaysUntil)} {t.daysOverdue}
+                            </div>
+                          ) : projectDaysUntil <= 7 ? (
+                            <div className="flex items-center gap-2 text-orange-600 font-semibold text-sm sm:text-base">
+                              <Icon name="clock" className="w-5 h-5" />
+                              {projectDaysUntil} {t.daysUntilDue}
+                            </div>
+                          ) : null}
                         </div>
-                        <p className="text-sm text-slate-600 mb-2">{language === 'he' ? project.descriptionHe : project.description}</p>
-                        <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
-                          <span><strong>{t.total}:</strong> ${project.total.toLocaleString()}</span>
-                          <span><strong>${project.perApartment}</strong> {t.perApartment}</span>
-                          <span><strong>{t.dueDate}:</strong> {new Date(project.dueDate).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US')}</span>
+                        <p className="text-sm sm:text-base text-slate-600 mb-2">
+                          {language === 'he' ? project.descriptionHe : project.description}
+                        </p>
+                        <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
+                          <span className="text-slate-600"><strong>{t.total}:</strong> ${project.total.toLocaleString()}</span>
+                          <span className="text-slate-600"><strong>${project.perApartment}</strong> {t.perApartment}</span>
+                          <span className="text-slate-600"><strong>{t.dueDate}:</strong> {new Date(project.dueDate).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US')}</span>
                         </div>
                       </div>
-                      <div className="mb-4">
+                      <div className="mb-4 sm:mb-6">
                         <div className="flex justify-between items-center mb-2 text-xs sm:text-sm">
-                          <span>{t.progress}: {projectProgress.paid}/{projectProgress.total} ({projectProgress.percentage}%)</span>
-                          <span>${(projectProgress.paid * project.perApartment).toLocaleString()} / ${project.total.toLocaleString()}</span>
+                          <span className="font-medium text-slate-600">{t.progress}: {projectProgress.paid}/{projectProgress.total} ({projectProgress.percentage}%)</span>
+                          <span className="font-medium text-slate-600">${(projectProgress.paid * project.perApartment).toLocaleString()} / ${project.total.toLocaleString()}</span>
                         </div>
-                        <div className="h-3 bg-slate-200 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500" style={{ width: `${projectProgress.percentage}%` }}></div></div>
+                        <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500" style={{ width: `${projectProgress.percentage}%` }}></div>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
                         {Object.entries(project.apartments).map(([num, apt]) => (
-                          <div key={num} onClick={() => isAuthenticated && togglePaymentStatus('project', project.id, num)} className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${apt.paid ? 'bg-blue-50 border-blue-500' : projectDaysUntil < 0 ? 'bg-red-50 border-red-500' : 'bg-slate-50 border-slate-300'} ${isAuthenticated ? 'cursor-pointer' : ''}`}>
+                          <div 
+                            key={num} 
+                            onClick={() => togglePaymentStatus('project', project.id, num)} 
+                            className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
+                              apt.paid 
+                                ? 'bg-blue-50 border-blue-500' 
+                                : projectDaysUntil < 0 
+                                  ? 'bg-red-50 border-red-500' 
+                                  : 'bg-slate-50 border-slate-300'
+                            } ${isAuthenticated ? 'cursor-pointer hover:shadow-lg active:scale-95' : 'cursor-default'}`}
+                          >
                             <div className="text-center">
-                              <div className="text-base sm:text-lg font-bold mb-1">{t.apartment} {num}</div>
-                              <div className="flex justify-center mb-1">{apt.paid ? <i data-lucide="check" className="w-5 h-5 text-blue-600"></i> : projectDaysUntil < 0 ? <i data-lucide="x" className="w-5 h-5 text-red-600"></i> : <i data-lucide="clock" className="w-5 h-5 text-orange-500"></i>}</div>
-                              <div className={`text-xs font-semibold ${apt.paid ? 'text-blue-700' : projectDaysUntil < 0 ? 'text-red-700' : 'text-orange-600'}`}>{apt.paid ? t.paid : projectDaysUntil < 0 ? t.overdue : t.unpaid}</div>
-                              {apt.paid && apt.date && <div className="text-xs text-slate-500 mt-1">{new Date(apt.date).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', { month: 'short', day: 'numeric' })}</div>}
-                              <div className="text-xs sm:text-sm font-semibold text-slate-600 mt-1">${apt.amount || project.perApartment}</div>
+                              <div className="text-base sm:text-lg font-bold text-slate-700 mb-1 sm:mb-2">
+                                {t.apartment} {num}
+                              </div>
+                              <div className="flex justify-center mb-1 sm:mb-2">
+                                {apt.paid ? (
+                                  <Icon name="check-circle" className="w-6 h-6 text-blue-600" />
+                                ) : projectDaysUntil < 0 ? (
+                                  <Icon name="x-circle" className="w-6 h-6 text-red-600" />
+                                ) : (
+                                  <Icon name="clock" className="w-6 h-6 text-orange-500" />
+                                )}
+                              </div>
+                              <div className={`text-xs font-semibold ${
+                                apt.paid 
+                                  ? 'text-blue-700' 
+                                  : projectDaysUntil < 0 
+                                    ? 'text-red-700' 
+                                    : 'text-orange-600'
+                              }`}>
+                                {apt.paid ? t.paid : projectDaysUntil < 0 ? t.overdue : t.unpaid}
+                              </div>
+                              {apt.paid && apt.date && (
+                                <div className="text-xs text-slate-500 mt-1">
+                                  {new Date(apt.date).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', { month: 'short', day: 'numeric' })}
+                                </div>
+                              )}
+                              <div className="text-xs sm:text-sm font-semibold text-slate-600 mt-1">
+                                ${apt.amount || project.perApartment}
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -357,7 +770,9 @@ const saveDataToGitHub = async (newData) => {
                   );
                 })}
 
-                <div className="text-center text-xs sm:text-sm text-slate-500 mt-8 pb-4">{t.lastUpdated}: {new Date().toLocaleString(language === 'he' ? 'he-IL' : 'en-US')}</div>
+                <div className="text-center text-xs sm:text-sm text-slate-500 mt-8 pb-4">
+                  {t.lastUpdated}: {new Date().toLocaleString(language === 'he' ? 'he-IL' : 'en-US')}
+                </div>
               </div>
             </div>
           );
