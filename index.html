@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Building Payment Tracker</title>
-   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,11 +13,20 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
-        .rtl { direction: rtl; }
-        .ltr { direction: ltr; }
-        .touch-manipulation { touch-action: manipulation; }
+        .rtl {
+            direction: rtl;
+        }
+
+        .ltr {
+            direction: ltr;
+        }
+
+        .touch-manipulation {
+            touch-action: manipulation;
+        }
     </style>
 </head>
+
 <body>
     <div id="root"></div>
 
@@ -41,27 +51,27 @@
         // ===== END OF FIREBASE SECTION =====
 
         // Lucide Icons as inline SVG components
-        const Check = ({size = 24, className = ""}) => (
+        const Check = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
         );
 
-        const X = ({size = 24, className = ""}) => (
+        const X = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
         );
 
-        const Clock = ({size = 24, className = ""}) => (
+        const Clock = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
         );
 
-        const AlertCircle = ({size = 24, className = ""}) => (
+        const AlertCircle = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -69,60 +79,60 @@
             </svg>
         );
 
-        const ChevronLeft = ({size = 24, className = ""}) => (
+        const ChevronLeft = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
         );
 
-        const ChevronRight = ({size = 24, className = ""}) => (
+        const ChevronRight = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
         );
 
-        const Lock = ({size = 24, className = ""}) => (
+        const Lock = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
         );
 
-        const Unlock = ({size = 24, className = ""}) => (
+        const Unlock = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                 <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
             </svg>
         );
 
-        const Settings = ({size = 24, className = ""}) => (
+        const Settings = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <circle cx="12" cy="12" r="3"></circle>
                 <path d="M12 1v6m0 6v6m5.196-15.804l-4.243 4.243m-5.906 5.906l-4.243 4.243m15.804-5.196l-4.243-4.243m-5.906 5.906l-4.243-4.243"></path>
             </svg>
         );
 
-        const Plus = ({size = 24, className = ""}) => (
+        const Plus = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
         );
 
-        const Edit2 = ({size = 24, className = ""}) => (
+        const Edit2 = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
             </svg>
         );
 
-        const Trash2 = ({size = 24, className = ""}) => (
+        const Trash2 = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
         );
 
-        const Save = ({size = 24, className = ""}) => (
+        const Save = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                 <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -130,7 +140,7 @@
             </svg>
         );
 
-        const XCircle = ({size = 24, className = ""}) => (
+        const XCircle = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="15" y1="9" x2="9" y2="15"></line>
@@ -138,7 +148,7 @@
             </svg>
         );
 
-        const User = ({size = 24, className = ""}) => (
+        const User = ({ size = 24, className = "" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                 <circle cx="12" cy="7" r="4"></circle>
@@ -147,12 +157,12 @@
 
         const PaymentTracker = () => {
             const [currentDate, setCurrentDate] = useState(new Date());
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('isAuthenticated') === 'true';
-});
-const [userRole, setUserRole] = useState(() => {
-    return localStorage.getItem('userRole');
-});
+            const [isAuthenticated, setIsAuthenticated] = useState(() => {
+                return localStorage.getItem('isAuthenticated') === 'true';
+            });
+            const [userRole, setUserRole] = useState(() => {
+                return localStorage.getItem('userRole');
+            });
             const [showLogin, setShowLogin] = useState(false);
             const [password, setPassword] = useState('');
             const [language, setLanguage] = useState('en');
@@ -160,7 +170,7 @@ const [userRole, setUserRole] = useState(() => {
             const [showProjectForm, setShowProjectForm] = useState(false);
             const [showMonthlySettings, setShowMonthlySettings] = useState(false);
             const [showManagerSettings, setShowManagerSettings] = useState(false);
-            
+
             const [newProject, setNewProject] = useState({
                 name: '',
                 nameHe: '',
@@ -169,12 +179,12 @@ const [userRole, setUserRole] = useState(() => {
                 description: '',
                 descriptionHe: ''
             });
-            
+
             const [monthlySettings, setMonthlySettings] = useState({
                 amount: 150,
                 dueDay: 5
             });
-            
+
             const [managerSettings, setManagerSettings] = useState({
                 newManagerEmail: '',
                 newManagerPassword: ''
@@ -198,33 +208,33 @@ const [userRole, setUserRole] = useState(() => {
                 }
             });
 
-         // Load data from Firebase
-const [data, setData] = useState(getDefaultData());
-const [isLoading, setIsLoading] = useState(true);
+            // Load data from Firebase
+            const [data, setData] = useState(getDefaultData());
+            const [isLoading, setIsLoading] = useState(true);
 
 
-// Load data from Firebase on mount
-useEffect(() => {
-    const dataRef = database.ref('buildingData');
-    
-    // Listen for real-time updates
-    const unsubscribe = dataRef.on('value', (snapshot) => {
-        const firebaseData = snapshot.val();
-        if (firebaseData) {
-            setData(firebaseData);
-            setIsLoading(false);
-        } else {
-            // First time - save default data to Firebase
-            const defaultData = getDefaultData();
-            dataRef.set(defaultData);
-            setData(defaultData);
-            setIsLoading(false);
-        }
-    });
+            // Load data from Firebase on mount
+            useEffect(() => {
+                const dataRef = database.ref('buildingData');
 
-    // Cleanup listener on unmount
-    return () => dataRef.off('value', unsubscribe);
-}, []);
+                // Listen for real-time updates
+                const unsubscribe = dataRef.on('value', (snapshot) => {
+                    const firebaseData = snapshot.val();
+                    if (firebaseData) {
+                        setData(firebaseData);
+                        setIsLoading(false);
+                    } else {
+                        // First time - save default data to Firebase
+                        const defaultData = getDefaultData();
+                        dataRef.set(defaultData);
+                        setData(defaultData);
+                        setIsLoading(false);
+                    }
+                });
+
+                // Cleanup listener on unmount
+                return () => dataRef.off('value', unsubscribe);
+            }, []);
 
 
             const texts = {
@@ -335,9 +345,9 @@ useEffect(() => {
             const formatMonthYear = (dateStr) => {
                 const [year, month] = dateStr.split('-');
                 const date = new Date(year, parseInt(month) - 1);
-                return date.toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', { 
-                    month: 'long', 
-                    year: 'numeric' 
+                return date.toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', {
+                    month: 'long',
+                    year: 'numeric'
                 });
             };
 
@@ -369,165 +379,165 @@ useEffect(() => {
                 return { paid, total, percentage: Math.round((paid / total) * 100) };
             };
 
-           const handleLogin = () => {
-    if (password === data.settings.adminPassword) {
-        setUserRole('admin');
-        setIsAuthenticated(true);
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userRole', 'admin');
-        setShowLogin(false);
-        setPassword('');
-    } else if (password === data.settings.managerPassword) {
-        setUserRole('manager');
-        setIsAuthenticated(true);
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userRole', 'manager');
-        setShowLogin(false);
-        setPassword('');
-    } else {
-        alert('Invalid password');
-    }
-};
+            const handleLogin = () => {
+                if (password === data.settings.adminPassword) {
+                    setUserRole('admin');
+                    setIsAuthenticated(true);
+                    localStorage.setItem('isAuthenticated', 'true');
+                    localStorage.setItem('userRole', 'admin');
+                    setShowLogin(false);
+                    setPassword('');
+                } else if (password === data.settings.managerPassword) {
+                    setUserRole('manager');
+                    setIsAuthenticated(true);
+                    localStorage.setItem('isAuthenticated', 'true');
+                    localStorage.setItem('userRole', 'manager');
+                    setShowLogin(false);
+                    setPassword('');
+                } else {
+                    alert('Invalid password');
+                }
+            };
 
             const togglePaymentStatus = (type, id, apartmentNum) => {
-    if (!isAuthenticated) return;
-    
-    const dataRef = database.ref('buildingData');
-    
-    if (type === 'monthly') {
-        const currentMonth = getCurrentMonthKey();
-        const apartmentRef = dataRef.child(`monthlyBills/${currentMonth}/apartments/${apartmentNum}`);
-        
-        // Get current status
-        apartmentRef.once('value', (snapshot) => {
-            const currentApt = snapshot.val() || { paid: false };
-            const newStatus = !currentApt.paid;
-            
-            // Update in Firebase
-            apartmentRef.set({
-                paid: newStatus,
-                date: newStatus ? new Date().toISOString().split('T')[0] : null,
-                amount: data.monthlyBills[currentMonth]?.amount || monthlySettings.amount
-            });
-        });
-    } else if (type === 'project') {
-        const apartmentRef = dataRef.child(`projects`);
-        
-        // Get all projects
-        apartmentRef.once('value', (snapshot) => {
-            const projects = snapshot.val() || [];
-            const projectIndex = projects.findIndex(p => p.id === id);
-            
-            if (projectIndex !== -1) {
-                const currentApt = projects[projectIndex].apartments[apartmentNum];
-                const newStatus = !currentApt.paid;
-                
-                // Update specific apartment in Firebase
-                dataRef.child(`projects/${projectIndex}/apartments/${apartmentNum}`).set({
-                    paid: newStatus,
-                    date: newStatus ? new Date().toISOString().split('T')[0] : null,
-                    amount: projects[projectIndex].perApartment
+                if (!isAuthenticated) return;
+
+                const dataRef = database.ref('buildingData');
+
+                if (type === 'monthly') {
+                    const currentMonth = getCurrentMonthKey();
+                    const apartmentRef = dataRef.child(`monthlyBills/${currentMonth}/apartments/${apartmentNum}`);
+
+                    // Get current status
+                    apartmentRef.once('value', (snapshot) => {
+                        const currentApt = snapshot.val() || { paid: false };
+                        const newStatus = !currentApt.paid;
+
+                        // Update in Firebase
+                        apartmentRef.set({
+                            paid: newStatus,
+                            date: newStatus ? new Date().toISOString().split('T')[0] : null,
+                            amount: data.monthlyBills[currentMonth]?.amount || monthlySettings.amount
+                        });
+                    });
+                } else if (type === 'project') {
+                    const apartmentRef = dataRef.child(`projects`);
+
+                    // Get all projects
+                    apartmentRef.once('value', (snapshot) => {
+                        const projects = snapshot.val() || [];
+                        const projectIndex = projects.findIndex(p => p.id === id);
+
+                        if (projectIndex !== -1) {
+                            const currentApt = projects[projectIndex].apartments[apartmentNum];
+                            const newStatus = !currentApt.paid;
+
+                            // Update specific apartment in Firebase
+                            dataRef.child(`projects/${projectIndex}/apartments/${apartmentNum}`).set({
+                                paid: newStatus,
+                                date: newStatus ? new Date().toISOString().split('T')[0] : null,
+                                amount: projects[projectIndex].perApartment
+                            });
+                        }
+                    });
+                }
+            };
+            const handleCreateProject = () => {
+                if (!newProject.name || !newProject.total || !newProject.dueDate) {
+                    alert(t.fillAllFields);
+                    return;
+                }
+
+                const total = parseFloat(newProject.total);
+                const perApartment = Math.round((total / 16) * 100) / 100;
+
+                const project = {
+                    id: `project-${Date.now()}`,
+                    name: newProject.name,
+                    nameHe: newProject.nameHe || newProject.name,
+                    total: total,
+                    perApartment: perApartment,
+                    dueDate: newProject.dueDate,
+                    description: newProject.description || '',
+                    descriptionHe: newProject.descriptionHe || newProject.description || '',
+                    apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
+                };
+
+                // Save directly to Firebase
+                const projectsRef = database.ref('buildingData/projects');
+                projectsRef.once('value', (snapshot) => {
+                    const currentProjects = snapshot.val() || [];
+                    const updatedProjects = [...currentProjects, project];
+                    projectsRef.set(updatedProjects);
                 });
-            }
-        });
-    }
-};
-const handleCreateProject = () => {
-    if (!newProject.name || !newProject.total || !newProject.dueDate) {
-        alert(t.fillAllFields);
-        return;
-    }
 
-    const total = parseFloat(newProject.total);
-    const perApartment = Math.round((total / 16) * 100) / 100;
-    
-    const project = {
-        id: `project-${Date.now()}`,
-        name: newProject.name,
-        nameHe: newProject.nameHe || newProject.name,
-        total: total,
-        perApartment: perApartment,
-        dueDate: newProject.dueDate,
-        description: newProject.description || '',
-        descriptionHe: newProject.descriptionHe || newProject.description || '',
-        apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
-    };
+                setNewProject({
+                    name: '',
+                    nameHe: '',
+                    total: '',
+                    dueDate: '',
+                    description: '',
+                    descriptionHe: ''
+                });
 
-    // Save directly to Firebase
-    const projectsRef = database.ref('buildingData/projects');
-    projectsRef.once('value', (snapshot) => {
-        const currentProjects = snapshot.val() || [];
-        const updatedProjects = [...currentProjects, project];
-        projectsRef.set(updatedProjects);
-    });
-
-    setNewProject({
-        name: '',
-        nameHe: '',
-        total: '',
-        dueDate: '',
-        description: '',
-        descriptionHe: ''
-    });
-    
-    setShowProjectForm(false);
-    alert(t.projectCreated);
-};
-const handleDeleteProject = (projectId) => {
-    if (window.confirm(t.confirmDelete)) {
-        const projectsRef = database.ref('buildingData/projects');
-        projectsRef.once('value', (snapshot) => {
-            const currentProjects = snapshot.val() || [];
-            const updatedProjects = currentProjects.filter(p => p.id !== projectId);
-            projectsRef.set(updatedProjects);
-        });
-    }
-};
+                setShowProjectForm(false);
+                alert(t.projectCreated);
+            };
+            const handleDeleteProject = (projectId) => {
+                if (window.confirm(t.confirmDelete)) {
+                    const projectsRef = database.ref('buildingData/projects');
+                    projectsRef.once('value', (snapshot) => {
+                        const currentProjects = snapshot.val() || [];
+                        const updatedProjects = currentProjects.filter(p => p.id !== projectId);
+                        projectsRef.set(updatedProjects);
+                    });
+                }
+            };
 
 
-          const handleSaveMonthlySettings = () => {
-    const currentMonth = getCurrentMonthKey();
-    const monthRef = database.ref(`buildingData/monthlyBills/${currentMonth}`);
-    
-    monthRef.once('value', (snapshot) => {
-        const currentMonthData = snapshot.val();
-        if (!currentMonthData) {
-            monthRef.set({
-                amount: monthlySettings.amount,
-                dueDay: monthlySettings.dueDay,
-                apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
-            });
-        } else {
-            monthRef.update({
-                amount: monthlySettings.amount,
-                dueDay: monthlySettings.dueDay
-            });
-        }
-    });
-    
-    setShowMonthlySettings(false);
-    alert(t.settingsSaved);
-};
+            const handleSaveMonthlySettings = () => {
+                const currentMonth = getCurrentMonthKey();
+                const monthRef = database.ref(`buildingData/monthlyBills/${currentMonth}`);
 
-          const handleAssignManager = () => {
-    if (!managerSettings.newManagerEmail || !managerSettings.newManagerPassword) {
-        alert(t.fillAllFields);
-        return;
-    }
+                monthRef.once('value', (snapshot) => {
+                    const currentMonthData = snapshot.val();
+                    if (!currentMonthData) {
+                        monthRef.set({
+                            amount: monthlySettings.amount,
+                            dueDay: monthlySettings.dueDay,
+                            apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
+                        });
+                    } else {
+                        monthRef.update({
+                            amount: monthlySettings.amount,
+                            dueDay: monthlySettings.dueDay
+                        });
+                    }
+                });
 
-    database.ref('buildingData/settings').update({
-        currentManager: managerSettings.newManagerEmail,
-        managerPassword: managerSettings.newManagerPassword
-    });
+                setShowMonthlySettings(false);
+                alert(t.settingsSaved);
+            };
 
-    setManagerSettings({
-        newManagerEmail: '',
-        newManagerPassword: ''
-    });
-    
-    setShowManagerSettings(false);
-    alert(t.managerAssigned);
-};
+            const handleAssignManager = () => {
+                if (!managerSettings.newManagerEmail || !managerSettings.newManagerPassword) {
+                    alert(t.fillAllFields);
+                    return;
+                }
+
+                database.ref('buildingData/settings').update({
+                    currentManager: managerSettings.newManagerEmail,
+                    managerPassword: managerSettings.newManagerPassword
+                });
+
+                setManagerSettings({
+                    newManagerEmail: '',
+                    newManagerPassword: ''
+                });
+
+                setShowManagerSettings(false);
+                alert(t.managerAssigned);
+            };
 
             const currentMonthKey = getCurrentMonthKey();
             const currentMonthData = data.monthlyBills[currentMonthKey] || {
@@ -547,18 +557,18 @@ const handleDeleteProject = (projectId) => {
             }, [currentMonthKey]);
 
             // Add this BEFORE the existing return statement
-if (isLoading) {
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-            <div className="text-center">
-                <div className="text-2xl font-bold text-slate-800 mb-2">Loading...</div>
-                <div className="text-slate-600">Connecting to database...</div>
-            </div>
-        </div>
-    );
-}
+            if (isLoading) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-slate-800 mb-2">Loading...</div>
+                            <div className="text-slate-600">Connecting to database...</div>
+                        </div>
+                    </div>
+                );
+            }
 
-// Then your existing return statement continues below
+            // Then your existing return statement continues below
 
 
             return (
@@ -585,13 +595,13 @@ if (isLoading) {
                                                 {userRole === 'admin' ? t.adminPanel : t.managerPanel}
                                             </button>
                                             <button
-                                                onClick={() => { 
-    setIsAuthenticated(false); 
-    setUserRole(null); 
-    setShowAdminPanel(false);
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userRole');
-}}
+                                                onClick={() => {
+                                                    setIsAuthenticated(false);
+                                                    setUserRole(null);
+                                                    setShowAdminPanel(false);
+                                                    localStorage.removeItem('isAuthenticated');
+                                                    localStorage.removeItem('userRole');
+                                                }}
                                                 className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs sm:text-sm font-medium transition-colors"
                                             >
                                                 {t.logout}
@@ -608,7 +618,7 @@ if (isLoading) {
                                     )}
                                 </div>
                             </div>
-                            
+
                             {/* Admin Panel */}
                             {showAdminPanel && isAuthenticated && (
                                 <div className="mt-4 p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
@@ -642,7 +652,7 @@ if (isLoading) {
                                     </div>
                                 </div>
                             )}
-                            
+
                             {/* Month Navigation */}
                             <div className="flex items-center justify-center gap-4 mt-4">
                                 <button
@@ -704,37 +714,37 @@ if (isLoading) {
                                             <XCircle size={24} />
                                         </button>
                                     </div>
-                                    
+
                                     <div className="space-y-4">
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">{t.projectName}</label>
                                             <input
                                                 type="text"
                                                 value={newProject.name}
-                                                onChange={(e) => setNewProject({...newProject, name: e.target.value})}
+                                                onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
                                                 className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                                 placeholder="Solar System Repair"
                                             />
                                         </div>
-                                        
+
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">{t.projectNameHe}</label>
                                             <input
                                                 type="text"
                                                 value={newProject.nameHe}
-                                                onChange={(e) => setNewProject({...newProject, nameHe: e.target.value})}
+                                                onChange={(e) => setNewProject({ ...newProject, nameHe: e.target.value })}
                                                 className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                                 placeholder="תיקון מערכת סולארית"
                                             />
                                         </div>
-                                        
+
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-sm font-medium text-slate-700 mb-1">{t.totalAmount}</label>
                                                 <input
                                                     type="number"
                                                     value={newProject.total}
-                                                    onChange={(e) => setNewProject({...newProject, total: e.target.value})}
+                                                    onChange={(e) => setNewProject({ ...newProject, total: e.target.value })}
                                                     className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                                     placeholder="5000"
                                                 />
@@ -744,41 +754,41 @@ if (isLoading) {
                                                     </p>
                                                 )}
                                             </div>
-                                            
+
                                             <div>
                                                 <label className="block text-sm font-medium text-slate-700 mb-1">{t.dueDate}</label>
                                                 <input
                                                     type="date"
                                                     value={newProject.dueDate}
-                                                    onChange={(e) => setNewProject({...newProject, dueDate: e.target.value})}
+                                                    onChange={(e) => setNewProject({ ...newProject, dueDate: e.target.value })}
                                                     className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                                 />
                                             </div>
                                         </div>
-                                        
+
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">{t.description}</label>
                                             <textarea
                                                 value={newProject.description}
-                                                onChange={(e) => setNewProject({...newProject, description: e.target.value})}
+                                                onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
                                                 className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                                 rows="2"
                                                 placeholder="Emergency repair of rooftop solar panels"
                                             />
                                         </div>
-                                        
+
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">{t.descriptionHe}</label>
                                             <textarea
                                                 value={newProject.descriptionHe}
-                                                onChange={(e) => setNewProject({...newProject, descriptionHe: e.target.value})}
+                                                onChange={(e) => setNewProject({ ...newProject, descriptionHe: e.target.value })}
                                                 className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                                 rows="2"
                                                 placeholder="תיקון חירום של פאנלים סולאריים בגג"
                                             />
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex gap-2 mt-6">
                                         <button
                                             onClick={handleCreateProject}
@@ -807,18 +817,18 @@ if (isLoading) {
                                             <XCircle size={24} />
                                         </button>
                                     </div>
-                                    
+
                                     <div className="space-y-4">
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">{t.monthlyAmount}</label>
                                             <input
                                                 type="number"
                                                 value={monthlySettings.amount}
-                                                onChange={(e) => setMonthlySettings({...monthlySettings, amount: parseFloat(e.target.value)})}
+                                                onChange={(e) => setMonthlySettings({ ...monthlySettings, amount: parseFloat(e.target.value) })}
                                                 className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                             />
                                         </div>
-                                        
+
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">{t.dueDayOfMonth}</label>
                                             <input
@@ -826,12 +836,12 @@ if (isLoading) {
                                                 min="1"
                                                 max="31"
                                                 value={monthlySettings.dueDay}
-                                                onChange={(e) => setMonthlySettings({...monthlySettings, dueDay: parseInt(e.target.value)})}
+                                                onChange={(e) => setMonthlySettings({ ...monthlySettings, dueDay: parseInt(e.target.value) })}
                                                 className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                             />
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex gap-2 mt-6">
                                         <button
                                             onClick={handleSaveMonthlySettings}
@@ -860,37 +870,37 @@ if (isLoading) {
                                             <XCircle size={24} />
                                         </button>
                                     </div>
-                                    
+
                                     <div className="mb-4 p-3 bg-slate-100 rounded-lg">
                                         <p className="text-sm text-slate-600">{t.currentManager}:</p>
                                         <p className="font-semibold text-slate-800">{data.settings.currentManager}</p>
                                     </div>
-                                    
+
                                     <div className="space-y-4">
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">{t.newManager}</label>
                                             <input
                                                 type="email"
                                                 value={managerSettings.newManagerEmail}
-                                                onChange={(e) => setManagerSettings({...managerSettings, newManagerEmail: e.target.value})}
+                                                onChange={(e) => setManagerSettings({ ...managerSettings, newManagerEmail: e.target.value })}
                                                 className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                                 placeholder="manager@building.com"
                                             />
                                         </div>
-                                        
+
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">{t.newPassword}</label>
                                             <input
                                                 type="text"
                                                 value={managerSettings.newManagerPassword}
-                                                onChange={(e) => setManagerSettings({...managerSettings, newManagerPassword: e.target.value})}
+                                                onChange={(e) => setManagerSettings({ ...managerSettings, newManagerPassword: e.target.value })}
                                                 className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                                 placeholder="manager123"
                                             />
                                             <p className="text-xs text-slate-500 mt-1">Password will be shown to you only once</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex gap-2 mt-6">
                                         <button
                                             onClick={handleAssignManager}
@@ -949,13 +959,12 @@ if (isLoading) {
                                     <div
                                         key={num}
                                         onClick={() => isAuthenticated && togglePaymentStatus('monthly', null, num)}
-                                        className={`p-3 sm:p-4 rounded-lg border-2 transition-all touch-manipulation ${
-                                            apt.paid
+                                        className={`p-3 sm:p-4 rounded-lg border-2 transition-all touch-manipulation ${apt.paid
                                                 ? 'bg-green-50 border-green-500 active:bg-green-100'
                                                 : daysUntilDue < 0
-                                                ? 'bg-red-50 border-red-500 active:bg-red-100'
-                                                : 'bg-slate-50 border-slate-300 active:bg-slate-100'
-                                        } ${isAuthenticated ? 'cursor-pointer' : ''}`}
+                                                    ? 'bg-red-50 border-red-500 active:bg-red-100'
+                                                    : 'bg-slate-50 border-slate-300 active:bg-slate-100'
+                                            } ${isAuthenticated ? 'cursor-pointer' : ''}`}
                                     >
                                         <div className="text-center">
                                             <div className="text-base sm:text-lg font-bold text-slate-700 mb-1 sm:mb-2">
@@ -970,9 +979,8 @@ if (isLoading) {
                                                     <Clock size={20} className="text-orange-500" />
                                                 )}
                                             </div>
-                                            <div className={`text-xs font-semibold ${
-                                                apt.paid ? 'text-green-700' : daysUntilDue < 0 ? 'text-red-700' : 'text-orange-600'
-                                            }`}>
+                                            <div className={`text-xs font-semibold ${apt.paid ? 'text-green-700' : daysUntilDue < 0 ? 'text-red-700' : 'text-orange-600'
+                                                }`}>
                                                 {apt.paid ? t.paid : daysUntilDue < 0 ? t.overdue : t.unpaid}
                                             </div>
                                             {apt.paid && apt.date && (
@@ -993,10 +1001,10 @@ if (isLoading) {
                         </div>
 
                         {/* Special Projects */}
-{data.projects && data.projects.length > 0 && data.projects.map(project => {
+                        {data.projects && data.projects.length > 0 && data.projects.map(project => {
                             const projectProgress = calculateProgress(project.apartments);
                             const projectDaysUntil = getProjectDaysUntilDue(project.dueDate);
-                            
+
                             return (
                                 <div key={project.id} className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
                                     <div className="mb-4">
@@ -1066,13 +1074,12 @@ if (isLoading) {
                                             <div
                                                 key={num}
                                                 onClick={() => isAuthenticated && togglePaymentStatus('project', project.id, num)}
-                                                className={`p-3 sm:p-4 rounded-lg border-2 transition-all touch-manipulation ${
-                                                    apt.paid
+                                                className={`p-3 sm:p-4 rounded-lg border-2 transition-all touch-manipulation ${apt.paid
                                                         ? 'bg-blue-50 border-blue-500 active:bg-blue-100'
                                                         : projectDaysUntil < 0
-                                                        ? 'bg-red-50 border-red-500 active:bg-red-100'
-                                                        : 'bg-slate-50 border-slate-300 active:bg-slate-100'
-                                                } ${isAuthenticated ? 'cursor-pointer' : ''}`}
+                                                            ? 'bg-red-50 border-red-500 active:bg-red-100'
+                                                            : 'bg-slate-50 border-slate-300 active:bg-slate-100'
+                                                    } ${isAuthenticated ? 'cursor-pointer' : ''}`}
                                             >
                                                 <div className="text-center">
                                                     <div className="text-base sm:text-lg font-bold text-slate-700 mb-1 sm:mb-2">
@@ -1087,9 +1094,8 @@ if (isLoading) {
                                                             <Clock size={20} className="text-orange-500" />
                                                         )}
                                                     </div>
-                                                    <div className={`text-xs font-semibold ${
-                                                        apt.paid ? 'text-blue-700' : projectDaysUntil < 0 ? 'text-red-700' : 'text-orange-600'
-                                                    }`}>
+                                                    <div className={`text-xs font-semibold ${apt.paid ? 'text-blue-700' : projectDaysUntil < 0 ? 'text-red-700' : 'text-orange-600'
+                                                        }`}>
                                                         {apt.paid ? t.paid : projectDaysUntil < 0 ? t.overdue : t.unpaid}
                                                     </div>
                                                     {apt.paid && apt.date && (
@@ -1122,4 +1128,5 @@ if (isLoading) {
         ReactDOM.render(<PaymentTracker />, document.getElementById('root'));
     </script>
 </body>
+
 </html>
