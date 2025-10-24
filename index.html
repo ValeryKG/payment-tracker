@@ -23,6 +23,23 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // ===== ADD THIS ENTIRE FIREBASE SECTION BELOW =====
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBY26AKFktAv2sSAZTkxwu74fzszLqq728",
+            authDomain: "payment-tracker-227b9.firebaseapp.com",
+            projectId: "payment-tracker-227b9",
+            databaseURL: "https://payment-tracker-227b9-default-rtdb.europe-west1.firebasedatabase.app",
+            storageBucket: "payment-tracker-227b9.firebasestorage.app",
+            messagingSenderId: "260778013979",
+            appId: "1:260778013979:web:4e0051cdeff4fa4cab0fbe"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        // ===== END OF FIREBASE SECTION =====
+
         // Lucide Icons as inline SVG components
         const Check = ({size = 24, className = ""}) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -177,24 +194,34 @@
                 }
             });
 
-            // Load data from localStorage or use defaults
-            const [data, setData] = useState(() => {
-                const saved = localStorage.getItem('buildingPaymentData');
-                if (saved) {
-                    try {
-                        return JSON.parse(saved);
-                    } catch (e) {
-                        console.error('Error loading data:', e);
-                        return getDefaultData();
-                    }
-                }
-                return getDefaultData();
-            });
+         // Load data from Firebase
+const [data, setData] = useState(getDefaultData());
+const [isLoading, setIsLoading] = useState(true);
 
-            // Save to localStorage whenever data changes
-            useEffect(() => {
-                localStorage.setItem('buildingPaymentData', JSON.stringify(data));
-            }, [data]);
+
+// Load data from Firebase on mount
+useEffect(() => {
+    const dataRef = database.ref('buildingData');
+    
+    // Listen for real-time updates
+    const unsubscribe = dataRef.on('value', (snapshot) => {
+        const firebaseData = snapshot.val();
+        if (firebaseData) {
+            setData(firebaseData);
+            setIsLoading(false);
+        } else {
+            // First time - save default data to Firebase
+            const defaultData = getDefaultData();
+            dataRef.set(defaultData);
+            setData(defaultData);
+            setIsLoading(false);
+        }
+    });
+
+    // Cleanup listener on unmount
+    return () => dataRef.off('value', unsubscribe);
+}, []);
+
 
             const texts = {
                 en: {
@@ -355,37 +382,48 @@
             };
 
             const togglePaymentStatus = (type, id, apartmentNum) => {
-                if (!isAuthenticated) return;
+    if (!isAuthenticated) return;
+    
+    const dataRef = database.ref('buildingData');
+    
+    if (type === 'monthly') {
+        const currentMonth = getCurrentMonthKey();
+        const apartmentRef = dataRef.child(`monthlyBills/${currentMonth}/apartments/${apartmentNum}`);
+        
+        // Get current status
+        apartmentRef.once('value', (snapshot) => {
+            const currentApt = snapshot.val() || { paid: false };
+            const newStatus = !currentApt.paid;
+            
+            // Update in Firebase
+            apartmentRef.set({
+                paid: newStatus,
+                date: newStatus ? new Date().toISOString().split('T')[0] : null,
+                amount: data.monthlyBills[currentMonth]?.amount || monthlySettings.amount
+            });
+        });
+    } else if (type === 'project') {
+        const apartmentRef = dataRef.child(`projects`);
+        
+        // Get all projects
+        apartmentRef.once('value', (snapshot) => {
+            const projects = snapshot.val() || [];
+            const projectIndex = projects.findIndex(p => p.id === id);
+            
+            if (projectIndex !== -1) {
+                const currentApt = projects[projectIndex].apartments[apartmentNum];
+                const newStatus = !currentApt.paid;
                 
-                setData(prev => {
-                    const newData = JSON.parse(JSON.stringify(prev));
-                    if (type === 'monthly') {
-                        const currentMonth = getCurrentMonthKey();
-                        if (!newData.monthlyBills[currentMonth]) {
-                            newData.monthlyBills[currentMonth] = {
-                                amount: monthlySettings.amount,
-                                dueDay: monthlySettings.dueDay,
-                                apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
-                            };
-                        }
-                        const currentStatus = newData.monthlyBills[currentMonth].apartments[apartmentNum].paid;
-                        newData.monthlyBills[currentMonth].apartments[apartmentNum] = {
-                            paid: !currentStatus,
-                            date: !currentStatus ? new Date().toISOString().split('T')[0] : undefined,
-                            amount: newData.monthlyBills[currentMonth].amount
-                        };
-                    } else if (type === 'project') {
-                        const project = newData.projects.find(p => p.id === id);
-                        const currentStatus = project.apartments[apartmentNum].paid;
-                        project.apartments[apartmentNum] = {
-                            paid: !currentStatus,
-                            date: !currentStatus ? new Date().toISOString().split('T')[0] : undefined,
-                            amount: project.perApartment
-                        };
-                    }
-                    return newData;
+                // Update specific apartment in Firebase
+                dataRef.child(`projects/${projectIndex}/apartments/${apartmentNum}`).set({
+                    paid: newStatus,
+                    date: newStatus ? new Date().toISOString().split('T')[0] : null,
+                    amount: projects[projectIndex].perApartment
                 });
-            };
+            }
+        });
+    }
+};
 
             const handleCreateProject = () => {
                 if (!newProject.name || !newProject.total || !newProject.dueDate) {
@@ -496,6 +534,21 @@
                     dueDay: currentMonthData.dueDay
                 });
             }, [currentMonthKey]);
+
+            // Add this BEFORE the existing return statement
+if (isLoading) {
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+            <div className="text-center">
+                <div className="text-2xl font-bold text-slate-800 mb-2">Loading...</div>
+                <div className="text-slate-600">Connecting to database...</div>
+            </div>
+        </div>
+    );
+}
+
+// Then your existing return statement continues below
+
 
             return (
                 <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-4 ${language === 'he' ? 'rtl' : 'ltr'}`}>
@@ -875,7 +928,7 @@
                             </div>
 
                             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
-                                {Object.entries(currentMonthData.apartments).map(([num, apt]) => (
+                                {currentMonthData.apartments && Object.entries(currentMonthData.apartments).map(([num, apt]) => (
                                     <div
                                         key={num}
                                         onClick={() => isAuthenticated && togglePaymentStatus('monthly', null, num)}
@@ -923,7 +976,7 @@
                         </div>
 
                         {/* Special Projects */}
-                        {data.projects.map(project => {
+{data.projects && data.projects.length > 0 && data.projects.map(project => {
                             const projectProgress = calculateProgress(project.apartments);
                             const projectDaysUntil = getProjectDaysUntilDue(project.dueDate);
                             
@@ -992,7 +1045,7 @@
                                     </div>
 
                                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
-                                        {Object.entries(project.apartments).map(([num, apt]) => (
+                                        {project.apartments && Object.entries(project.apartments).map(([num, apt]) => (
                                             <div
                                                 key={num}
                                                 onClick={() => isAuthenticated && togglePaymentStatus('project', project.id, num)}
