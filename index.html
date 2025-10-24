@@ -55,49 +55,62 @@
           };
           const t = texts[language];
 
-          const loadDataFromGitHub = async () => {
-            try {
-              setLoading(true);
-              setError(null);
-              const dataResponse = await fetch(`https://raw.githubusercontent.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/main/${GITHUB_CONFIG.dataFile}`);
-              if (!dataResponse.ok) throw new Error('Load failed');
-              const content = await dataResponse.json();
-              const shaResponse = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.dataFile}`, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Accept': 'application/vnd.github.v3+json' }});
-              if (shaResponse.ok) {
-                const shaResult = await shaResponse.json();
-                setFileSha(shaResult.sha);
-              }
-              setData(content);
-              setLoading(false);
-            } catch (err) {
-              console.error('Load error:', err);
-              setError(t.errorLoading);
-              setLoading(false);
-            }
-          };
+ // NO MORE TOKEN IN CODE!
 
-          const saveDataToGitHub = async (newData) => {
-            try {
-              setSaving(true);
-              const content = btoa(JSON.stringify(newData, null, 2));
-              const response = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.dataFile}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: 'Update', content: content, sha: fileSha })
-              });
-              if (!response.ok) throw new Error('Save failed');
-              const result = await response.json();
-              setFileSha(result.content.sha);
-              setSaving(false);
-              return true;
-            } catch (err) {
-              console.error('Save error:', err);
-              alert(t.errorSaving);
-              setSaving(false);
-              return false;
-            }
-          };
+const loadDataFromGitHub = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    
+    const response = await fetch('/.netlify/functions/github-api', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'read' })
+    });
+    
+    if (!response.ok) throw new Error('Load failed');
+    
+    const result = await response.json();
+    const content = JSON.parse(atob(result.content));
+    
+    setData(content);
+    setFileSha(result.sha);
+    setLoading(false);
+  } catch (err) {
+    console.error('Load error:', err);
+    setError(t.errorLoading);
+    setLoading(false);
+  }
+};
 
+const saveDataToGitHub = async (newData) => {
+  try {
+    setSaving(true);
+    const content = btoa(JSON.stringify(newData, null, 2));
+    
+    const response = await fetch('/.netlify/functions/github-api', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        action: 'write', 
+        content: content, 
+        sha: fileSha 
+      })
+    });
+    
+    if (!response.ok) throw new Error('Save failed');
+    
+    const result = await response.json();
+    setFileSha(result.content.sha);
+    setSaving(false);
+    return true;
+  } catch (err) {
+    console.error('Save error:', err);
+    alert(t.errorSaving);
+    setSaving(false);
+    return false;
+  }
+};
           useEffect(() => { loadDataFromGitHub(); }, []);
           useEffect(() => { lucide.createIcons(); });
 
