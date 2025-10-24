@@ -147,8 +147,12 @@
 
         const PaymentTracker = () => {
             const [currentDate, setCurrentDate] = useState(new Date());
-            const [isAuthenticated, setIsAuthenticated] = useState(false);
-            const [userRole, setUserRole] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('isAuthenticated') === 'true';
+});
+const [userRole, setUserRole] = useState(() => {
+    return localStorage.getItem('userRole');
+});
             const [showLogin, setShowLogin] = useState(false);
             const [password, setPassword] = useState('');
             const [language, setLanguage] = useState('en');
@@ -365,21 +369,25 @@ useEffect(() => {
                 return { paid, total, percentage: Math.round((paid / total) * 100) };
             };
 
-            const handleLogin = () => {
-                if (password === data.settings.adminPassword) {
-                    setUserRole('admin');
-                    setIsAuthenticated(true);
-                    setShowLogin(false);
-                    setPassword('');
-                } else if (password === data.settings.managerPassword) {
-                    setUserRole('manager');
-                    setIsAuthenticated(true);
-                    setShowLogin(false);
-                    setPassword('');
-                } else {
-                    alert('Invalid password');
-                }
-            };
+           const handleLogin = () => {
+    if (password === data.settings.adminPassword) {
+        setUserRole('admin');
+        setIsAuthenticated(true);
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('userRole', 'admin');
+        setShowLogin(false);
+        setPassword('');
+    } else if (password === data.settings.managerPassword) {
+        setUserRole('manager');
+        setIsAuthenticated(true);
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('userRole', 'manager');
+        setShowLogin(false);
+        setPassword('');
+    } else {
+        alert('Invalid password');
+    }
+};
 
             const togglePaymentStatus = (type, id, apartmentNum) => {
     if (!isAuthenticated) return;
@@ -424,99 +432,102 @@ useEffect(() => {
         });
     }
 };
+const handleCreateProject = () => {
+    if (!newProject.name || !newProject.total || !newProject.dueDate) {
+        alert(t.fillAllFields);
+        return;
+    }
 
-            const handleCreateProject = () => {
-                if (!newProject.name || !newProject.total || !newProject.dueDate) {
-                    alert(t.fillAllFields);
-                    return;
-                }
+    const total = parseFloat(newProject.total);
+    const perApartment = Math.round((total / 16) * 100) / 100;
+    
+    const project = {
+        id: `project-${Date.now()}`,
+        name: newProject.name,
+        nameHe: newProject.nameHe || newProject.name,
+        total: total,
+        perApartment: perApartment,
+        dueDate: newProject.dueDate,
+        description: newProject.description || '',
+        descriptionHe: newProject.descriptionHe || newProject.description || '',
+        apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
+    };
 
-                const total = parseFloat(newProject.total);
-                const perApartment = Math.round((total / 16) * 100) / 100;
-                
-                const project = {
-                    id: `project-${Date.now()}`,
-                    name: newProject.name,
-                    nameHe: newProject.nameHe || newProject.name,
-                    total: total,
-                    perApartment: perApartment,
-                    dueDate: newProject.dueDate,
-                    description: newProject.description || '',
-                    descriptionHe: newProject.descriptionHe || newProject.description || '',
-                    apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
-                };
+    // Save directly to Firebase
+    const projectsRef = database.ref('buildingData/projects');
+    projectsRef.once('value', (snapshot) => {
+        const currentProjects = snapshot.val() || [];
+        const updatedProjects = [...currentProjects, project];
+        projectsRef.set(updatedProjects);
+    });
 
-                setData(prev => ({
-                    ...prev,
-                    projects: [...prev.projects, project]
-                }));
+    setNewProject({
+        name: '',
+        nameHe: '',
+        total: '',
+        dueDate: '',
+        description: '',
+        descriptionHe: ''
+    });
+    
+    setShowProjectForm(false);
+    alert(t.projectCreated);
+};
+const handleDeleteProject = (projectId) => {
+    if (window.confirm(t.confirmDelete)) {
+        const projectsRef = database.ref('buildingData/projects');
+        projectsRef.once('value', (snapshot) => {
+            const currentProjects = snapshot.val() || [];
+            const updatedProjects = currentProjects.filter(p => p.id !== projectId);
+            projectsRef.set(updatedProjects);
+        });
+    }
+};
 
-                setNewProject({
-                    name: '',
-                    nameHe: '',
-                    total: '',
-                    dueDate: '',
-                    description: '',
-                    descriptionHe: ''
-                });
-                
-                setShowProjectForm(false);
-                alert(t.projectCreated);
-            };
 
-            const handleDeleteProject = (projectId) => {
-                if (window.confirm(t.confirmDelete)) {
-                    setData(prev => ({
-                        ...prev,
-                        projects: prev.projects.filter(p => p.id !== projectId)
-                    }));
-                }
-            };
+          const handleSaveMonthlySettings = () => {
+    const currentMonth = getCurrentMonthKey();
+    const monthRef = database.ref(`buildingData/monthlyBills/${currentMonth}`);
+    
+    monthRef.once('value', (snapshot) => {
+        const currentMonthData = snapshot.val();
+        if (!currentMonthData) {
+            monthRef.set({
+                amount: monthlySettings.amount,
+                dueDay: monthlySettings.dueDay,
+                apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
+            });
+        } else {
+            monthRef.update({
+                amount: monthlySettings.amount,
+                dueDay: monthlySettings.dueDay
+            });
+        }
+    });
+    
+    setShowMonthlySettings(false);
+    alert(t.settingsSaved);
+};
 
-            const handleSaveMonthlySettings = () => {
-                const currentMonth = getCurrentMonthKey();
-                setData(prev => {
-                    const newData = JSON.parse(JSON.stringify(prev));
-                    if (!newData.monthlyBills[currentMonth]) {
-                        newData.monthlyBills[currentMonth] = {
-                            amount: monthlySettings.amount,
-                            dueDay: monthlySettings.dueDay,
-                            apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
-                        };
-                    } else {
-                        newData.monthlyBills[currentMonth].amount = monthlySettings.amount;
-                        newData.monthlyBills[currentMonth].dueDay = monthlySettings.dueDay;
-                    }
-                    return newData;
-                });
-                
-                setShowMonthlySettings(false);
-                alert(t.settingsSaved);
-            };
+          const handleAssignManager = () => {
+    if (!managerSettings.newManagerEmail || !managerSettings.newManagerPassword) {
+        alert(t.fillAllFields);
+        return;
+    }
 
-            const handleAssignManager = () => {
-                if (!managerSettings.newManagerEmail || !managerSettings.newManagerPassword) {
-                    alert(t.fillAllFields);
-                    return;
-                }
+    database.ref('buildingData/settings').update({
+        currentManager: managerSettings.newManagerEmail,
+        managerPassword: managerSettings.newManagerPassword
+    });
 
-                setData(prev => ({
-                    ...prev,
-                    settings: {
-                        ...prev.settings,
-                        currentManager: managerSettings.newManagerEmail,
-                        managerPassword: managerSettings.newManagerPassword
-                    }
-                }));
-
-                setManagerSettings({
-                    newManagerEmail: '',
-                    newManagerPassword: ''
-                });
-                
-                setShowManagerSettings(false);
-                alert(t.managerAssigned);
-            };
+    setManagerSettings({
+        newManagerEmail: '',
+        newManagerPassword: ''
+    });
+    
+    setShowManagerSettings(false);
+    alert(t.managerAssigned);
+};
 
             const currentMonthKey = getCurrentMonthKey();
             const currentMonthData = data.monthlyBills[currentMonthKey] || {
@@ -574,7 +585,13 @@ if (isLoading) {
                                                 {userRole === 'admin' ? t.adminPanel : t.managerPanel}
                                             </button>
                                             <button
-                                                onClick={() => { setIsAuthenticated(false); setUserRole(null); setShowAdminPanel(false); }}
+                                                onClick={() => { 
+    setIsAuthenticated(false); 
+    setUserRole(null); 
+    setShowAdminPanel(false);
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userRole');
+}}
                                                 className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs sm:text-sm font-medium transition-colors"
                                             >
                                                 {t.logout}
