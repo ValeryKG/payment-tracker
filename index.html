@@ -22,13 +22,6 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        const GITHUB_CONFIG = {
-            owner: 'ValeryKG',
-            repo: 'payment-tracker',
-            token: atob('Z2hwX3QwZXVzVjNuRTZjaExYZWw3SFJBSkVrUmR2MFp2bzJiU04ybw=='),
-            dataFile: 'data.json'
-        };
-
         const PaymentTracker = () => {
           const [currentDate, setCurrentDate] = useState(new Date());
           const [isAuthenticated, setIsAuthenticated] = useState(false);
