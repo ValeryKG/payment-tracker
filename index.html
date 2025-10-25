@@ -12,6 +12,7 @@
     <!-- ADD THESE TWO LINES BELOW -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <style>
         .rtl {
             direction: rtl;
@@ -48,6 +49,7 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+        const auth = firebase.auth();
         // ===== END OF FIREBASE SECTION =====
 
         // Lucide Icons as inline SVG components
@@ -165,6 +167,7 @@
             });
             const [showLogin, setShowLogin] = useState(false);
             const [password, setPassword] = useState('');
+            const [loginEmail, setLoginEmail] = useState('');
             const [language, setLanguage] = useState('en');
             const [showAdminPanel, setShowAdminPanel] = useState(false);
             const [showProjectForm, setShowProjectForm] = useState(false);
@@ -379,23 +382,36 @@
                 return { paid, total, percentage: Math.round((paid / total) * 100) };
             };
 
-            const handleLogin = () => {
-                if (password === data.settings.adminPassword) {
-                    setUserRole('admin');
-                    setIsAuthenticated(true);
-                    localStorage.setItem('isAuthenticated', 'true');
-                    localStorage.setItem('userRole', 'admin');
-                    setShowLogin(false);
-                    setPassword('');
-                } else if (password === data.settings.managerPassword) {
-                    setUserRole('manager');
-                    setIsAuthenticated(true);
-                    localStorage.setItem('isAuthenticated', 'true');
-                    localStorage.setItem('userRole', 'manager');
-                    setShowLogin(false);
-                    setPassword('');
-                } else {
-                    alert('Invalid password');
+            const handleLogin = async () => {
+                try {
+                    // Sign in with Firebase Auth
+                    const userCredential = await auth.signInWithEmailAndPassword(loginEmail, password);
+                    const user = userCredential.user;
+
+                    // Get user role from database
+                    const userRoleRef = database.ref(`users/${user.uid}/role`);
+                    const snapshot = await userRoleRef.once('value');
+                    const role = snapshot.val();
+
+                    if (role) {
+                        setUserRole(role);
+                        setIsAuthenticated(true);
+                        localStorage.setItem('isAuthenticated', 'true');
+                        localStorage.setItem('userRole', role);
+                        setShowLogin(false);
+                        setPassword('');
+                        setLoginEmail('');
+                    } else {
+                        alert('User role not found. Please contact administrator.');
+                        await auth.signOut();
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                        alert('Invalid email or password');
+                    } else {
+                        alert('Login error: ' + error.message);
+                    }
                 }
             };
 
@@ -679,6 +695,13 @@
                                 <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
                                     <h3 className="text-lg sm:text-xl font-bold mb-4">{t.login}</h3>
                                     <input
+                                        type="email"
+                                        value={loginEmail}
+                                        onChange={(e) => setLoginEmail(e.target.value)}
+                                        placeholder="Email"
+                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg mb-4 text-base"
+                                    />
+                                    <input
                                         type="password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
@@ -700,7 +723,7 @@
                                             {t.cancel}
                                         </button>
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-4">Demo: admin123 or manager123</p>
+                                    <p className="text-xs text-slate-500 mt-4">Demo: admin@test.com / admin123</p>
                                 </div>
                             </div>
                         )}
@@ -960,10 +983,10 @@
                                         key={num}
                                         onClick={() => isAuthenticated && togglePaymentStatus('monthly', null, num)}
                                         className={`p-3 sm:p-4 rounded-lg border-2 transition-all touch-manipulation ${apt.paid
-                                                ? 'bg-green-50 border-green-500 active:bg-green-100'
-                                                : daysUntilDue < 0
-                                                    ? 'bg-red-50 border-red-500 active:bg-red-100'
-                                                    : 'bg-slate-50 border-slate-300 active:bg-slate-100'
+                                            ? 'bg-green-50 border-green-500 active:bg-green-100'
+                                            : daysUntilDue < 0
+                                                ? 'bg-red-50 border-red-500 active:bg-red-100'
+                                                : 'bg-slate-50 border-slate-300 active:bg-slate-100'
                                             } ${isAuthenticated ? 'cursor-pointer' : ''}`}
                                     >
                                         <div className="text-center">
@@ -1075,10 +1098,10 @@
                                                 key={num}
                                                 onClick={() => isAuthenticated && togglePaymentStatus('project', project.id, num)}
                                                 className={`p-3 sm:p-4 rounded-lg border-2 transition-all touch-manipulation ${apt.paid
-                                                        ? 'bg-blue-50 border-blue-500 active:bg-blue-100'
-                                                        : projectDaysUntil < 0
-                                                            ? 'bg-red-50 border-red-500 active:bg-red-100'
-                                                            : 'bg-slate-50 border-slate-300 active:bg-slate-100'
+                                                    ? 'bg-blue-50 border-blue-500 active:bg-blue-100'
+                                                    : projectDaysUntil < 0
+                                                        ? 'bg-red-50 border-red-500 active:bg-red-100'
+                                                        : 'bg-slate-50 border-slate-300 active:bg-slate-100'
                                                     } ${isAuthenticated ? 'cursor-pointer' : ''}`}
                                             >
                                                 <div className="text-center">
