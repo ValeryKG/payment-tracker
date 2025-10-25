@@ -966,13 +966,13 @@
                                         {t.progress}: {monthlyProgress.paid}/{monthlyProgress.total} ({monthlyProgress.percentage}%)
                                     </span>
                                     <span className="font-medium text-slate-600">
-                                        ${monthlyProgress.paid * currentMonthData.amount} / ${monthlyProgress.total * currentMonthData.amount}
+                                        NIS {monthlyProgress.paid * currentMonthData.amount} / NIS {monthlyProgress.total * currentMonthData.amount}
                                     </span>
                                 </div>
                                 <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-                                        style={{ width: `${monthlyProgress.percentage}%` }}
+                                        style={{ width: `{monthlyProgress.percentage}%` }}
                                     />
                                 </div>
                             </div>
@@ -1081,7 +1081,7 @@
                                                 {t.progress}: {projectProgress.paid}/{projectProgress.total} ({projectProgress.percentage}%)
                                             </span>
                                             <span className="font-medium text-slate-600">
-                                                ${(projectProgress.paid * project.perApartment).toLocaleString()} / ${project.total.toLocaleString()}
+                                                NIS {(projectProgress.paid * project.perApartment).toLocaleString()} / NIS {project.total.toLocaleString()}
                                             </span>
                                         </div>
                                         <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
