@@ -202,7 +202,7 @@
             });
 
             const [newUserData, setNewUserData] = useState({
-                email: '',
+                username: '',      // Changed: email → username
                 password: '',
                 role: 'manager'
             });
@@ -398,8 +398,16 @@
 
             const handleLogin = async () => {
                 try {
+                    // ===== CONVERT USERNAME TO EMAIL IF NEEDED =====
+                    // If user typed "apt1", convert to "apt1@building.local"
+                    // If user typed "admin@test.com", keep as is
+                    let emailToUse = loginEmail;
+                    if (!loginEmail.includes('@')) {
+                        emailToUse = `${loginEmail}@building.local`;
+                    }
+
                     // Sign in with Firebase Auth
-                    const userCredential = await auth.signInWithEmailAndPassword(loginEmail, password);
+                    const userCredential = await auth.signInWithEmailAndPassword(emailToUse, password);
                     const user = userCredential.user;
 
                     // Get user role from database
@@ -416,7 +424,7 @@
                         // ===== STORE ADMIN CREDENTIALS - Needed for session restoration =====
                         if (role === 'admin') {
                             setAdminCredentials({
-                                email: loginEmail,
+                                email: emailToUse,
                                 password: password
                             });
                         }
@@ -431,7 +439,7 @@
                 } catch (error) {
                     console.error('Login error:', error);
                     if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                        alert('Invalid email or password');
+                        alert('Invalid username or password');
                     } else {
                         alert('Login error: ' + error.message);
                     }
@@ -439,7 +447,8 @@
             };
 
             const togglePaymentStatus = (type, id, apartmentNum) => {
-                if (!isAuthenticated) return;
+                // Only managers and admins can toggle payments
+                if (!isAuthenticated || userRole === 'resident') return;
 
                 const dataRef = database.ref('buildingData');
 
@@ -581,15 +590,18 @@
 
             // ===== CREATE USER FUNCTION - Allows admin to create new users with roles =====
             const handleCreateUser = async () => {
-                if (!newUserData.email || !newUserData.password) {
-                    alert('Please fill email and password');
+                if (!newUserData.username || !newUserData.password) {
+                    alert('Please fill username and password');
                     return;
                 }
 
+                // ===== AUTO-GENERATE EMAIL FROM USERNAME =====
+                const generatedEmail = `${newUserData.username}@building.local`;
+
                 try {
-                    // Create user in Firebase Auth
+                    // Create user in Firebase Auth with generated email
                     const userCredential = await auth.createUserWithEmailAndPassword(
-                        newUserData.email,
+                        generatedEmail,  // Changed: use generated email instead of newUserData.email
                         newUserData.password
                     );
                     const user = userCredential.user;
@@ -597,15 +609,16 @@
                     // Add user role to database
                     await database.ref(`users/${user.uid}`).set({
                         role: newUserData.role,
-                        email: newUserData.email,
+                        username: newUserData.username,        // Store original username
+                        email: generatedEmail,                  // Store generated email
                         createdAt: new Date().toISOString()
                     });
 
-                    alert(`User created successfully!\nEmail: ${newUserData.email}\nRole: ${newUserData.role}`);
+                    alert(`User created successfully!\nUsername: ${newUserData.username}\nEmail: ${generatedEmail}\nRole: ${newUserData.role}`);
 
                     // Reset form
                     setNewUserData({
-                        email: '',
+                        username: '',    // Changed: email → username
                         password: '',
                         role: 'manager'
                     });
@@ -662,120 +675,26 @@
             }
 
             // Then your existing return statement continues below
-
-
             return (
                 <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-4 ${language === 'he' ? 'rtl' : 'ltr'}`}>
                     <div className="max-w-6xl mx-auto">
-                        {/* Header */}
-                        <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-                                <h1 className="text-xl sm:text-3xl font-bold text-slate-800">{t.title}</h1>
-                                <div className="flex gap-2 flex-wrap">
+
+                        {/* ===== REQUIRE LOGIN TO VIEW ANYTHING ===== */}
+                        {!isAuthenticated ? (
+                            <div className="min-h-screen flex items-center justify-center -mt-8">
+                                <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+                                    <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">{t.title}</h2>
                                     <button
                                         onClick={() => setLanguage(language === 'en' ? 'he' : 'en')}
-                                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs sm:text-sm font-medium transition-colors"
+                                        className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors mb-4"
                                     >
                                         {language === 'en' ? 'עברית' : 'English'}
                                     </button>
-                                    {isAuthenticated ? (
-                                        <>
-                                            <button
-                                                onClick={() => setShowAdminPanel(!showAdminPanel)}
-                                                className="px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 transition-colors"
-                                            >
-                                                <Settings size={16} />
-                                                {userRole === 'admin' ? t.adminPanel : t.managerPanel}
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setIsAuthenticated(false);
-                                                    setUserRole(null);
-                                                    setShowAdminPanel(false);
-                                                    localStorage.removeItem('isAuthenticated');
-                                                    localStorage.removeItem('userRole');
-                                                }}
-                                                className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs sm:text-sm font-medium transition-colors"
-                                            >
-                                                {t.logout}
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <button
-                                            onClick={() => setShowLogin(true)}
-                                            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 transition-colors"
-                                        >
-                                            <Lock size={16} />
-                                            {t.login}
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Admin Panel */}
-                            {showAdminPanel && isAuthenticated && (
-                                <div className="mt-4 p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
-                                    <h3 className="text-lg font-bold text-purple-900 mb-3">
-                                        {userRole === 'admin' ? t.adminPanel : t.managerPanel}
-                                    </h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                        <button
-                                            onClick={() => setShowProjectForm(true)}
-                                            className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-                                        >
-                                            <Plus size={18} />
-                                            {t.createProject}
-                                        </button>
-                                        <button
-                                            onClick={() => setShowMonthlySettings(true)}
-                                            className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-                                        >
-                                            <Edit2 size={18} />
-                                            {t.editMonthly}
-                                        </button>
-                                        {userRole === 'admin' && (
-                                            <button
-                                                onClick={() => setShowCreateUser(true)}
-                                                className="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-                                            >
-                                                <User size={18} />
-                                                Create User
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Month Navigation */}
-                            <div className="flex items-center justify-center gap-4 mt-4">
-                                <button
-                                    onClick={() => changeMonth(-1)}
-                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors touch-manipulation"
-                                >
-                                    <ChevronLeft size={24} />
-                                </button>
-                                <h2 className="text-base sm:text-xl font-semibold text-slate-700 min-w-[180px] sm:min-w-[200px] text-center">
-                                    {formatMonthYear(currentMonthKey)}
-                                </h2>
-                                <button
-                                    onClick={() => changeMonth(1)}
-                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors touch-manipulation"
-                                >
-                                    <ChevronRight size={24} />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Modals */}
-                        {showLogin && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                                <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
-                                    <h3 className="text-lg sm:text-xl font-bold mb-4">{t.login}</h3>
                                     <input
-                                        type="email"
+                                        type="text"
                                         value={loginEmail}
                                         onChange={(e) => setLoginEmail(e.target.value)}
-                                        placeholder="Email"
+                                        placeholder="Username or Email (e.g., apt1)"
                                         className="w-full px-4 py-3 border border-slate-300 rounded-lg mb-4 text-base"
                                     />
                                     <input
@@ -786,473 +705,496 @@
                                         placeholder={t.password}
                                         className="w-full px-4 py-3 border border-slate-300 rounded-lg mb-4 text-base"
                                     />
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={handleLogin}
-                                            className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors touch-manipulation"
-                                        >
-                                            {t.submit}
-                                        </button>
-                                        <button
-                                            onClick={() => { setShowLogin(false); setPassword(''); }}
-                                            className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors touch-manipulation"
-                                        >
-                                            {t.cancel}
-                                        </button>
-                                    </div>
-                                    <p className="text-xs text-slate-500 mt-4">Demo: admin@test.com / admin123</p>
-                                </div>
-                            </div>
-                        )}
-
-                        {showProjectForm && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-                                <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-2xl my-8">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-lg sm:text-xl font-bold">{t.createProject}</h3>
-                                        <button onClick={() => setShowProjectForm(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                                            <XCircle size={24} />
-                                        </button>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t.projectName}</label>
-                                            <input
-                                                type="text"
-                                                value={newProject.name}
-                                                onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                                                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-                                                placeholder="Solar System Repair"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t.projectNameHe}</label>
-                                            <input
-                                                type="text"
-                                                value={newProject.nameHe}
-                                                onChange={(e) => setNewProject({ ...newProject, nameHe: e.target.value })}
-                                                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-                                                placeholder="תיקון מערכת סולארית"
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1">{t.totalAmount}</label>
-                                                <input
-                                                    type="number"
-                                                    value={newProject.total}
-                                                    onChange={(e) => setNewProject({ ...newProject, total: e.target.value })}
-                                                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-                                                    placeholder="5000"
-                                                />
-                                                {newProject.total && (
-                                                    <p className="text-xs text-slate-500 mt-1">
-                                                        ${(parseFloat(newProject.total) / 16).toFixed(2)} {t.perApartment}
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1">{t.dueDate}</label>
-                                                <input
-                                                    type="date"
-                                                    value={newProject.dueDate}
-                                                    onChange={(e) => setNewProject({ ...newProject, dueDate: e.target.value })}
-                                                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t.description}</label>
-                                            <textarea
-                                                value={newProject.description}
-                                                onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                                                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-                                                rows="2"
-                                                placeholder="Emergency repair of rooftop solar panels"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t.descriptionHe}</label>
-                                            <textarea
-                                                value={newProject.descriptionHe}
-                                                onChange={(e) => setNewProject({ ...newProject, descriptionHe: e.target.value })}
-                                                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-                                                rows="2"
-                                                placeholder="תיקון חירום של פאנלים סולאריים בגג"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-2 mt-6">
-                                        <button
-                                            onClick={handleCreateProject}
-                                            className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors touch-manipulation"
-                                        >
-                                            <Save size={18} />
-                                            {t.create}
-                                        </button>
-                                        <button
-                                            onClick={() => setShowProjectForm(false)}
-                                            className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors touch-manipulation"
-                                        >
-                                            {t.cancel}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {showMonthlySettings && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                                <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-lg sm:text-xl font-bold">{t.editMonthly}</h3>
-                                        <button onClick={() => setShowMonthlySettings(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                                            <XCircle size={24} />
-                                        </button>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t.monthlyAmount}</label>
-                                            <input
-                                                type="number"
-                                                value={monthlySettings.amount}
-                                                onChange={(e) => setMonthlySettings({ ...monthlySettings, amount: parseFloat(e.target.value) })}
-                                                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t.dueDayOfMonth}</label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max="31"
-                                                value={monthlySettings.dueDay}
-                                                onChange={(e) => setMonthlySettings({ ...monthlySettings, dueDay: parseInt(e.target.value) })}
-                                                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-2 mt-6">
-                                        <button
-                                            onClick={handleSaveMonthlySettings}
-                                            className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors touch-manipulation"
-                                        >
-                                            <Save size={18} />
-                                            {t.save}
-                                        </button>
-                                        <button
-                                            onClick={() => setShowMonthlySettings(false)}
-                                            className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors touch-manipulation"
-                                        >
-                                            {t.cancel}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {showManagerSettings && userRole === 'admin' && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                                <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-lg sm:text-xl font-bold">{t.manageManagers}</h3>
-                                        <button onClick={() => setShowManagerSettings(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                                            <XCircle size={24} />
-                                        </button>
-                                    </div>
-
-                                    <div className="mb-4 p-3 bg-slate-100 rounded-lg">
-                                        <p className="text-sm text-slate-600">{t.currentManager}:</p>
-                                        <p className="font-semibold text-slate-800">{data.settings.currentManager}</p>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t.newManager}</label>
-                                            <input
-                                                type="email"
-                                                value={managerSettings.newManagerEmail}
-                                                onChange={(e) => setManagerSettings({ ...managerSettings, newManagerEmail: e.target.value })}
-                                                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-                                                placeholder="manager@building.com"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t.newPassword}</label>
-                                            <input
-                                                type="text"
-                                                value={managerSettings.newManagerPassword}
-                                                onChange={(e) => setManagerSettings({ ...managerSettings, newManagerPassword: e.target.value })}
-                                                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-                                                placeholder="manager123"
-                                            />
-                                            <p className="text-xs text-slate-500 mt-1">Password will be shown to you only once</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-2 mt-6">
-                                        <button
-                                            onClick={handleAssignManager}
-                                            className="flex-1 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors touch-manipulation"
-                                        >
-                                            <User size={18} />
-                                            {t.assignManager}
-                                        </button>
-                                        <button
-                                            onClick={() => setShowManagerSettings(false)}
-                                            className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors touch-manipulation"
-                                        >
-                                            {t.cancel}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-
-                        {showCreateUser && userRole === 'admin' && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                                <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-lg sm:text-xl font-bold">Create New User</h3>
-                                        <button onClick={() => setShowCreateUser(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                                            <XCircle size={24} />
-                                        </button>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                                            <input
-                                                type="email"
-                                                value={newUserData.email}
-                                                onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
-                                                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-                                                placeholder="user@building.com"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                                            <input
-                                                type="text"
-                                                value={newUserData.password}
-                                                onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
-                                                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-                                                placeholder="password123"
-                                            />
-                                            <p className="text-xs text-slate-500 mt-1">Minimum 6 characters</p>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-                                            <select
-                                                value={newUserData.role}
-                                                onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
-                                                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-                                            >
-                                                <option value="manager">Manager</option>
-                                                <option value="resident">Resident (View Only)</option>
-                                            </select>
-                                            <p className="text-xs text-slate-500 mt-1">
-                                                Manager: Can manage payments | Resident: View only
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-2 mt-6">
-                                        <button
-                                            onClick={handleCreateUser}
-                                            className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors touch-manipulation"
-                                        >
-                                            <User size={18} />
-                                            Create User
-                                        </button>
-                                        <button
-                                            onClick={() => setShowCreateUser(false)}
-                                            className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors touch-manipulation"
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-
-
-
-                        {/* Monthly Bills Section */}
-                        <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
-                                <h2 className="text-xl sm:text-2xl font-bold text-slate-800">{t.monthlyBills}</h2>
-                                {daysUntilDue < 0 ? (
-                                    <div className="flex items-center gap-2 text-red-600 font-semibold text-sm sm:text-base">
-                                        <AlertCircle size={18} />
-                                        {Math.abs(daysUntilDue)} {t.daysOverdue}
-                                    </div>
-                                ) : daysUntilDue <= 3 ? (
-                                    <div className="flex items-center gap-2 text-orange-600 font-semibold text-sm sm:text-base">
-                                        <Clock size={18} />
-                                        {daysUntilDue} {t.daysUntilDue}
-                                    </div>
-                                ) : null}
-                            </div>
-
-                            <div className="mb-4 sm:mb-6">
-                                <div className="flex justify-between items-center mb-2 text-xs sm:text-sm">
-                                    <span className="font-medium text-slate-600">
-                                        {t.progress}: {monthlyProgress.paid}/{monthlyProgress.total} ({monthlyProgress.percentage}%)
-                                    </span>
-                                    <span className="font-medium text-slate-600">
-                                        NIS {monthlyProgress.paid * currentMonthData.amount} / NIS {monthlyProgress.total * currentMonthData.amount}
-                                    </span>
-                                </div>
-                                <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-                                        style={{ width: `{monthlyProgress.percentage}%` }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
-                                {currentMonthData.apartments && Object.entries(currentMonthData.apartments).map(([num, apt]) => (
-                                    <div
-                                        key={num}
-                                        onClick={() => isAuthenticated && togglePaymentStatus('monthly', null, num)}
-                                        className={`p-3 sm:p-4 rounded-lg border-2 transition-all touch-manipulation ${apt.paid
-                                            ? 'bg-green-50 border-green-500 active:bg-green-100'
-                                            : daysUntilDue < 0
-                                                ? 'bg-red-50 border-red-500 active:bg-red-100'
-                                                : 'bg-slate-50 border-slate-300 active:bg-slate-100'
-                                            } ${isAuthenticated ? 'cursor-pointer' : ''}`}
+                                    <button
+                                        onClick={handleLogin}
+                                        className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
                                     >
-                                        <div className="text-center">
-                                            <div className="text-base sm:text-lg font-bold text-slate-700 mb-1 sm:mb-2">
-                                                {t.apartment} {num}
-                                            </div>
-                                            <div className="flex justify-center mb-1 sm:mb-2">
-                                                {apt.paid ? (
-                                                    <Check size={20} className="text-green-600" />
-                                                ) : daysUntilDue < 0 ? (
-                                                    <X size={20} className="text-red-600" />
-                                                ) : (
-                                                    <Clock size={20} className="text-orange-500" />
-                                                )}
-                                            </div>
-                                            <div className={`text-xs font-semibold ${apt.paid ? 'text-green-700' : daysUntilDue < 0 ? 'text-red-700' : 'text-orange-600'
-                                                }`}>
-                                                {apt.paid ? t.paid : daysUntilDue < 0 ? t.overdue : t.unpaid}
-                                            </div>
-                                            {apt.paid && apt.date && (
-                                                <div className="text-xs text-slate-500 mt-1">
-                                                    {new Date(apt.date).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', {
-                                                        month: 'short',
-                                                        day: 'numeric'
-                                                    })}
-                                                </div>
-                                            )}
-                                            <div className="text-xs sm:text-sm font-semibold text-slate-600 mt-1">
-                                                NIS {apt.amount || currentMonthData.amount}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                                        {t.login}
+                                    </button>
+                                    <p className="text-xs text-slate-500 mt-4 text-center">Demo: admin@test.com / admin123 or apt1 / test123</p>
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <>
 
-                        {/* Special Projects */}
-                        {data.projects && data.projects.length > 0 && data.projects.map(project => {
-                            const projectProgress = calculateProgress(project.apartments);
-                            const projectDaysUntil = getProjectDaysUntilDue(project.dueDate);
 
-                            return (
-                                <div key={project.id} className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
-                                    <div className="mb-4">
-                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <h2 className="text-xl sm:text-2xl font-bold text-slate-800">
-                                                        {language === 'he' ? project.nameHe : project.name}
-                                                    </h2>
-                                                    {isAuthenticated && (
+
+                                {/* Header */}
+                                <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                                        <h1 className="text-xl sm:text-3xl font-bold text-slate-800">{t.title}</h1>
+                                        <div className="flex gap-2 flex-wrap">
+                                            <button
+                                                onClick={() => setLanguage(language === 'en' ? 'he' : 'en')}
+                                                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs sm:text-sm font-medium transition-colors"
+                                            >
+                                                {language === 'en' ? 'עברית' : 'English'}
+                                            </button>
+                                            {isAuthenticated ? (
+                                                <>
+                                                    {userRole !== 'resident' && (
                                                         <button
-                                                            onClick={() => handleDeleteProject(project.id)}
-                                                            className="p-1 hover:bg-red-100 rounded text-red-600 touch-manipulation"
+                                                            onClick={() => setShowAdminPanel(!showAdminPanel)}
+                                                            className="px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 transition-colors"
                                                         >
-                                                            <Trash2 size={18} />
+                                                            <Settings size={16} />
+                                                            {userRole === 'admin' ? t.adminPanel : t.managerPanel}
                                                         </button>
                                                     )}
+                                                    <button
+                                                        onClick={() => {
+                                                            setIsAuthenticated(false);
+                                                            setUserRole(null);
+                                                            setShowAdminPanel(false);
+                                                            localStorage.removeItem('isAuthenticated');
+                                                            localStorage.removeItem('userRole');
+                                                        }}
+                                                        className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs sm:text-sm font-medium transition-colors"
+                                                    >
+                                                        {t.logout}
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <button
+                                                    onClick={() => setShowLogin(true)}
+                                                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 transition-colors"
+                                                >
+                                                    <Lock size={16} />
+                                                    {t.login}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Admin Panel */}
+                                    {showAdminPanel && isAuthenticated && userRole !== 'resident' && (
+                                        <div className="mt-4 p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
+                                            <h3 className="text-lg font-bold text-purple-900 mb-3">
+                                                {userRole === 'admin' ? t.adminPanel : t.managerPanel}
+                                            </h3>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                                <button
+                                                    onClick={() => setShowProjectForm(true)}
+                                                    className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                                >
+                                                    <Plus size={18} />
+                                                    {t.createProject}
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowMonthlySettings(true)}
+                                                    className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                                >
+                                                    <Edit2 size={18} />
+                                                    {t.editMonthly}
+                                                </button>
+                                                {userRole === 'admin' && (
+                                                    <button
+                                                        onClick={() => setShowCreateUser(true)}
+                                                        className="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                                    >
+                                                        <User size={18} />
+                                                        Create User
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Month Navigation */}
+                                    <div className="flex items-center justify-center gap-4 mt-4">
+                                        <button
+                                            onClick={() => changeMonth(-1)}
+                                            className="p-2 hover:bg-slate-100 rounded-lg transition-colors touch-manipulation"
+                                        >
+                                            <ChevronLeft size={24} />
+                                        </button>
+                                        <h2 className="text-base sm:text-xl font-semibold text-slate-700 min-w-[180px] sm:min-w-[200px] text-center">
+                                            {formatMonthYear(currentMonthKey)}
+                                        </h2>
+                                        <button
+                                            onClick={() => changeMonth(1)}
+                                            className="p-2 hover:bg-slate-100 rounded-lg transition-colors touch-manipulation"
+                                        >
+                                            <ChevronRight size={24} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Modals */}
+                                {showLogin && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
+                                            <h3 className="text-lg sm:text-xl font-bold mb-4">{t.login}</h3>
+                                            <input
+                                                type="text"
+                                                value={loginEmail}
+                                                onChange={(e) => setLoginEmail(e.target.value)}
+                                                placeholder="Username or Email (e.g., apt1)"
+                                                className="w-full px-4 py-3 border border-slate-300 rounded-lg mb-4 text-base"
+                                            />
+                                            <input
+                                                type="password"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                                                placeholder={t.password}
+                                                className="w-full px-4 py-3 border border-slate-300 rounded-lg mb-4 text-base"
+                                            />
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={handleLogin}
+                                                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors touch-manipulation"
+                                                >
+                                                    {t.submit}
+                                                </button>
+                                                <button
+                                                    onClick={() => { setShowLogin(false); setPassword(''); }}
+                                                    className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors touch-manipulation"
+                                                >
+                                                    {t.cancel}
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-4">Demo: admin@test.com / admin123</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {showProjectForm && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                                        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-2xl my-8">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h3 className="text-lg sm:text-xl font-bold">{t.createProject}</h3>
+                                                <button onClick={() => setShowProjectForm(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                                                    <XCircle size={24} />
+                                                </button>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.projectName}</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newProject.name}
+                                                        onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        placeholder="Solar System Repair"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.projectNameHe}</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newProject.nameHe}
+                                                        onChange={(e) => setNewProject({ ...newProject, nameHe: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        placeholder="תיקון מערכת סולארית"
+                                                    />
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-slate-700 mb-1">{t.totalAmount}</label>
+                                                        <input
+                                                            type="number"
+                                                            value={newProject.total}
+                                                            onChange={(e) => setNewProject({ ...newProject, total: e.target.value })}
+                                                            className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                            placeholder="5000"
+                                                        />
+                                                        {newProject.total && (
+                                                            <p className="text-xs text-slate-500 mt-1">
+                                                                ${(parseFloat(newProject.total) / 16).toFixed(2)} {t.perApartment}
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-slate-700 mb-1">{t.dueDate}</label>
+                                                        <input
+                                                            type="date"
+                                                            value={newProject.dueDate}
+                                                            onChange={(e) => setNewProject({ ...newProject, dueDate: e.target.value })}
+                                                            className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.description}</label>
+                                                    <textarea
+                                                        value={newProject.description}
+                                                        onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        rows="2"
+                                                        placeholder="Emergency repair of rooftop solar panels"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.descriptionHe}</label>
+                                                    <textarea
+                                                        value={newProject.descriptionHe}
+                                                        onChange={(e) => setNewProject({ ...newProject, descriptionHe: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        rows="2"
+                                                        placeholder="תיקון חירום של פאנלים סולאריים בגג"
+                                                    />
                                                 </div>
                                             </div>
-                                            {projectDaysUntil < 0 ? (
-                                                <div className="flex items-center gap-2 text-red-600 font-semibold text-sm sm:text-base">
-                                                    <AlertCircle size={18} />
-                                                    {Math.abs(projectDaysUntil)} {t.daysOverdue}
-                                                </div>
-                                            ) : projectDaysUntil <= 7 ? (
-                                                <div className="flex items-center gap-2 text-orange-600 font-semibold text-sm sm:text-base">
-                                                    <Clock size={18} />
-                                                    {projectDaysUntil} {t.daysUntilDue}
-                                                </div>
-                                            ) : null}
+
+                                            <div className="flex gap-2 mt-6">
+                                                <button
+                                                    onClick={handleCreateProject}
+                                                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors touch-manipulation"
+                                                >
+                                                    <Save size={18} />
+                                                    {t.create}
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowProjectForm(false)}
+                                                    className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors touch-manipulation"
+                                                >
+                                                    {t.cancel}
+                                                </button>
+                                            </div>
                                         </div>
-                                        <p className="text-sm sm:text-base text-slate-600 mb-2">
-                                            {language === 'he' ? project.descriptionHe : project.description}
-                                        </p>
-                                        <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
-                                            <span className="text-slate-600">
-                                                <strong>{t.total}:</strong> ${project.total.toLocaleString()}
-                                            </span>
-                                            <span className="text-slate-600">
-                                                <strong>${project.perApartment}</strong> {t.perApartment}
-                                            </span>
-                                            <span className="text-slate-600">
-                                                <strong>{t.dueDate}:</strong> {new Date(project.dueDate).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US')}
-                                            </span>
+                                    </div>
+                                )}
+
+                                {showMonthlySettings && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h3 className="text-lg sm:text-xl font-bold">{t.editMonthly}</h3>
+                                                <button onClick={() => setShowMonthlySettings(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                                                    <XCircle size={24} />
+                                                </button>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.monthlyAmount}</label>
+                                                    <input
+                                                        type="number"
+                                                        value={monthlySettings.amount}
+                                                        onChange={(e) => setMonthlySettings({ ...monthlySettings, amount: parseFloat(e.target.value) })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.dueDayOfMonth}</label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max="31"
+                                                        value={monthlySettings.dueDay}
+                                                        onChange={(e) => setMonthlySettings({ ...monthlySettings, dueDay: parseInt(e.target.value) })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-2 mt-6">
+                                                <button
+                                                    onClick={handleSaveMonthlySettings}
+                                                    className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors touch-manipulation"
+                                                >
+                                                    <Save size={18} />
+                                                    {t.save}
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowMonthlySettings(false)}
+                                                    className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors touch-manipulation"
+                                                >
+                                                    {t.cancel}
+                                                </button>
+                                            </div>
                                         </div>
+                                    </div>
+                                )}
+
+                                {showManagerSettings && userRole === 'admin' && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h3 className="text-lg sm:text-xl font-bold">{t.manageManagers}</h3>
+                                                <button onClick={() => setShowManagerSettings(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                                                    <XCircle size={24} />
+                                                </button>
+                                            </div>
+
+                                            <div className="mb-4 p-3 bg-slate-100 rounded-lg">
+                                                <p className="text-sm text-slate-600">{t.currentManager}:</p>
+                                                <p className="font-semibold text-slate-800">{data.settings.currentManager}</p>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.newManager}</label>
+                                                    <input
+                                                        type="email"
+                                                        value={managerSettings.newManagerEmail}
+                                                        onChange={(e) => setManagerSettings({ ...managerSettings, newManagerEmail: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        placeholder="manager@building.com"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.newPassword}</label>
+                                                    <input
+                                                        type="text"
+                                                        value={managerSettings.newManagerPassword}
+                                                        onChange={(e) => setManagerSettings({ ...managerSettings, newManagerPassword: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        placeholder="manager123"
+                                                    />
+                                                    <p className="text-xs text-slate-500 mt-1">Password will be shown to you only once</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-2 mt-6">
+                                                <button
+                                                    onClick={handleAssignManager}
+                                                    className="flex-1 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors touch-manipulation"
+                                                >
+                                                    <User size={18} />
+                                                    {t.assignManager}
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowManagerSettings(false)}
+                                                    className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors touch-manipulation"
+                                                >
+                                                    {t.cancel}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+
+                                {showCreateUser && userRole === 'admin' && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h3 className="text-lg sm:text-xl font-bold">Create New User</h3>
+                                                <button onClick={() => setShowCreateUser(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                                                    <XCircle size={24} />
+                                                </button>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newUserData.username}
+                                                        onChange={(e) => setNewUserData({ ...newUserData, username: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        placeholder="apt1, apt5-john, or manager1"
+                                                    />
+                                                    <p className="text-xs text-slate-500 mt-1">
+                                                        System will create: {newUserData.username || 'username'}@building.local
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newUserData.password}
+                                                        onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        placeholder="password123"
+                                                    />
+                                                    <p className="text-xs text-slate-500 mt-1">Minimum 6 characters</p>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                                                    <select
+                                                        value={newUserData.role}
+                                                        onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                    >
+                                                        <option value="manager">Manager</option>
+                                                        <option value="resident">Resident (View Only)</option>
+                                                    </select>
+                                                    <p className="text-xs text-slate-500 mt-1">
+                                                        Manager: Can manage payments | Resident: View only
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-2 mt-6">
+                                                <button
+                                                    onClick={handleCreateUser}
+                                                    className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors touch-manipulation"
+                                                >
+                                                    <User size={18} />
+                                                    Create User
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowCreateUser(false)}
+                                                    className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors touch-manipulation"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+
+
+
+                                {/* Monthly Bills Section */}
+                                <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
+                                        <h2 className="text-xl sm:text-2xl font-bold text-slate-800">{t.monthlyBills}</h2>
+                                        {daysUntilDue < 0 ? (
+                                            <div className="flex items-center gap-2 text-red-600 font-semibold text-sm sm:text-base">
+                                                <AlertCircle size={18} />
+                                                {Math.abs(daysUntilDue)} {t.daysOverdue}
+                                            </div>
+                                        ) : daysUntilDue <= 3 ? (
+                                            <div className="flex items-center gap-2 text-orange-600 font-semibold text-sm sm:text-base">
+                                                <Clock size={18} />
+                                                {daysUntilDue} {t.daysUntilDue}
+                                            </div>
+                                        ) : null}
                                     </div>
 
                                     <div className="mb-4 sm:mb-6">
                                         <div className="flex justify-between items-center mb-2 text-xs sm:text-sm">
                                             <span className="font-medium text-slate-600">
-                                                {t.progress}: {projectProgress.paid}/{projectProgress.total} ({projectProgress.percentage}%)
+                                                {t.progress}: {monthlyProgress.paid}/{monthlyProgress.total} ({monthlyProgress.percentage}%)
                                             </span>
                                             <span className="font-medium text-slate-600">
-                                                NIS {(projectProgress.paid * project.perApartment).toLocaleString()} / NIS {project.total.toLocaleString()}
+                                                NIS {monthlyProgress.paid * currentMonthData.amount} / NIS {monthlyProgress.total * currentMonthData.amount}
                                             </span>
                                         </div>
                                         <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
                                             <div
-                                                className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
-                                                style={{ width: `${projectProgress.percentage}%` }}
+                                                className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                                                style={{ width: `{monthlyProgress.percentage}%` }}
                                             />
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
-                                        {project.apartments && Object.entries(project.apartments).map(([num, apt]) => (
+                                        {currentMonthData.apartments && Object.entries(currentMonthData.apartments).map(([num, apt]) => (
                                             <div
                                                 key={num}
-                                                onClick={() => isAuthenticated && togglePaymentStatus('project', project.id, num)}
+                                                onClick={() => isAuthenticated && togglePaymentStatus('monthly', null, num)}
                                                 className={`p-3 sm:p-4 rounded-lg border-2 transition-all touch-manipulation ${apt.paid
-                                                    ? 'bg-blue-50 border-blue-500 active:bg-blue-100'
-                                                    : projectDaysUntil < 0
+                                                    ? 'bg-green-50 border-green-500 active:bg-green-100'
+                                                    : daysUntilDue < 0
                                                         ? 'bg-red-50 border-red-500 active:bg-red-100'
                                                         : 'bg-slate-50 border-slate-300 active:bg-slate-100'
-                                                    } ${isAuthenticated ? 'cursor-pointer' : ''}`}
+                                                    } ${isAuthenticated && userRole !== 'resident' ? 'cursor-pointer' : ''}`}
                                             >
                                                 <div className="text-center">
                                                     <div className="text-base sm:text-lg font-bold text-slate-700 mb-1 sm:mb-2">
@@ -1260,16 +1202,16 @@
                                                     </div>
                                                     <div className="flex justify-center mb-1 sm:mb-2">
                                                         {apt.paid ? (
-                                                            <Check size={20} className="text-blue-600" />
-                                                        ) : projectDaysUntil < 0 ? (
+                                                            <Check size={20} className="text-green-600" />
+                                                        ) : daysUntilDue < 0 ? (
                                                             <X size={20} className="text-red-600" />
                                                         ) : (
                                                             <Clock size={20} className="text-orange-500" />
                                                         )}
                                                     </div>
-                                                    <div className={`text-xs font-semibold ${apt.paid ? 'text-blue-700' : projectDaysUntil < 0 ? 'text-red-700' : 'text-orange-600'
+                                                    <div className={`text-xs font-semibold ${apt.paid ? 'text-green-700' : daysUntilDue < 0 ? 'text-red-700' : 'text-orange-600'
                                                         }`}>
-                                                        {apt.paid ? t.paid : projectDaysUntil < 0 ? t.overdue : t.unpaid}
+                                                        {apt.paid ? t.paid : daysUntilDue < 0 ? t.overdue : t.unpaid}
                                                     </div>
                                                     {apt.paid && apt.date && (
                                                         <div className="text-xs text-slate-500 mt-1">
@@ -1280,19 +1222,137 @@
                                                         </div>
                                                     )}
                                                     <div className="text-xs sm:text-sm font-semibold text-slate-600 mt-1">
-                                                        NIS {apt.amount || project.perApartment}
+                                                        NIS {apt.amount || currentMonthData.amount}
                                                     </div>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                            );
-                        })}
 
-                        <div className="text-center text-xs sm:text-sm text-slate-500 mt-8 pb-4">
-                            {t.lastUpdated}: {new Date().toLocaleString(language === 'he' ? 'he-IL' : 'en-US')}
-                        </div>
+                                {/* Special Projects */}
+                                {data.projects && data.projects.length > 0 && data.projects.map(project => {
+                                    const projectProgress = calculateProgress(project.apartments);
+                                    const projectDaysUntil = getProjectDaysUntilDue(project.dueDate);
+
+                                    return (
+                                        <div key={project.id} className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
+                                            <div className="mb-4">
+                                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <h2 className="text-xl sm:text-2xl font-bold text-slate-800">
+                                                                {language === 'he' ? project.nameHe : project.name}
+                                                            </h2>
+                                                            {isAuthenticated && (
+                                                                <button
+                                                                    onClick={() => handleDeleteProject(project.id)}
+                                                                    className="p-1 hover:bg-red-100 rounded text-red-600 touch-manipulation"
+                                                                >
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    {projectDaysUntil < 0 ? (
+                                                        <div className="flex items-center gap-2 text-red-600 font-semibold text-sm sm:text-base">
+                                                            <AlertCircle size={18} />
+                                                            {Math.abs(projectDaysUntil)} {t.daysOverdue}
+                                                        </div>
+                                                    ) : projectDaysUntil <= 7 ? (
+                                                        <div className="flex items-center gap-2 text-orange-600 font-semibold text-sm sm:text-base">
+                                                            <Clock size={18} />
+                                                            {projectDaysUntil} {t.daysUntilDue}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                                <p className="text-sm sm:text-base text-slate-600 mb-2">
+                                                    {language === 'he' ? project.descriptionHe : project.description}
+                                                </p>
+                                                <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
+                                                    <span className="text-slate-600">
+                                                        <strong>{t.total}:</strong> ${project.total.toLocaleString()}
+                                                    </span>
+                                                    <span className="text-slate-600">
+                                                        <strong>${project.perApartment}</strong> {t.perApartment}
+                                                    </span>
+                                                    <span className="text-slate-600">
+                                                        <strong>{t.dueDate}:</strong> {new Date(project.dueDate).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US')}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="mb-4 sm:mb-6">
+                                                <div className="flex justify-between items-center mb-2 text-xs sm:text-sm">
+                                                    <span className="font-medium text-slate-600">
+                                                        {t.progress}: {projectProgress.paid}/{projectProgress.total} ({projectProgress.percentage}%)
+                                                    </span>
+                                                    <span className="font-medium text-slate-600">
+                                                        NIS {(projectProgress.paid * project.perApartment).toLocaleString()} / NIS {project.total.toLocaleString()}
+                                                    </span>
+                                                </div>
+                                                <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
+                                                        style={{ width: `${projectProgress.percentage}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
+                                                {project.apartments && Object.entries(project.apartments).map(([num, apt]) => (
+                                                    <div
+                                                        key={num}
+                                                        onClick={() => isAuthenticated && togglePaymentStatus('project', project.id, num)}
+                                                        className={`p-3 sm:p-4 rounded-lg border-2 transition-all touch-manipulation ${apt.paid
+                                                            ? 'bg-blue-50 border-blue-500 active:bg-blue-100'
+                                                            : projectDaysUntil < 0
+                                                                ? 'bg-red-50 border-red-500 active:bg-red-100'
+                                                                : 'bg-slate-50 border-slate-300 active:bg-slate-100'
+                                                            } ${isAuthenticated && userRole !== 'resident' ? 'cursor-pointer' : ''}`}
+                                                    >
+                                                        <div className="text-center">
+                                                            <div className="text-base sm:text-lg font-bold text-slate-700 mb-1 sm:mb-2">
+                                                                {t.apartment} {num}
+                                                            </div>
+                                                            <div className="flex justify-center mb-1 sm:mb-2">
+                                                                {apt.paid ? (
+                                                                    <Check size={20} className="text-blue-600" />
+                                                                ) : projectDaysUntil < 0 ? (
+                                                                    <X size={20} className="text-red-600" />
+                                                                ) : (
+                                                                    <Clock size={20} className="text-orange-500" />
+                                                                )}
+                                                            </div>
+                                                            <div className={`text-xs font-semibold ${apt.paid ? 'text-blue-700' : projectDaysUntil < 0 ? 'text-red-700' : 'text-orange-600'
+                                                                }`}>
+                                                                {apt.paid ? t.paid : projectDaysUntil < 0 ? t.overdue : t.unpaid}
+                                                            </div>
+                                                            {apt.paid && apt.date && (
+                                                                <div className="text-xs text-slate-500 mt-1">
+                                                                    {new Date(apt.date).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', {
+                                                                        month: 'short',
+                                                                        day: 'numeric'
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                            <div className="text-xs sm:text-sm font-semibold text-slate-600 mt-1">
+                                                                NIS {apt.amount || project.perApartment}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                <div className="text-center text-xs sm:text-sm text-slate-500 mt-8 pb-4">
+                                    {t.lastUpdated}: {new Date().toLocaleString(language === 'he' ? 'he-IL' : 'en-US')}
+                                </div>
+
+                            </>
+                        )}
                     </div>
                 </div>
             );
