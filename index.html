@@ -201,14 +201,14 @@
                 newManagerPassword: ''
             });
 
-            const [newUserData, setNewUserData] = useState({
+           const [newUserData, setNewUserData] = useState({
                 username: '',      // Changed: email → username
                 password: '',
-                role: 'manager'
+                role: 'resident'
             });
 
             // Initial default data
-            const getDefaultData = () => ({
+ const getDefaultData = () => ({
                 monthlyBills: {
                     '2025-01': {
                         amount: 150,
@@ -230,27 +230,41 @@
             const [isLoading, setIsLoading] = useState(true);
 
 
-            // Load data from Firebase on mount
+         // Load data from Firebase on mount
             useEffect(() => {
-                const dataRef = database.ref('buildingData');
-
-                // Listen for real-time updates
-                const unsubscribe = dataRef.on('value', (snapshot) => {
-                    const firebaseData = snapshot.val();
-                    if (firebaseData) {
-                        setData(firebaseData);
-                        setIsLoading(false);
+                // Check authentication state first
+                const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        // User is logged in, load data
+                        const dataRef = database.ref('buildingData');
+                        
+                        const unsubscribeData = dataRef.on('value', (snapshot) => {
+                            const firebaseData = snapshot.val();
+                            if (firebaseData) {
+                                setData(firebaseData);
+                                setIsLoading(false);
+                            } else {
+                                // First time - save default data to Firebase
+                                const defaultData = getDefaultData();
+                                dataRef.set(defaultData);
+                                setData(defaultData);
+                                setIsLoading(false);
+                            }
+                        }, (error) => {
+                            console.error('Data load error:', error);
+                            setIsLoading(false);
+                        });
+                        
+                        // Store unsubscribe for data listener
+                        return () => dataRef.off('value', unsubscribeData);
                     } else {
-                        // First time - save default data to Firebase
-                        const defaultData = getDefaultData();
-                        dataRef.set(defaultData);
-                        setData(defaultData);
+                        // No user logged in, stop loading screen
                         setIsLoading(false);
                     }
                 });
 
-                // Cleanup listener on unmount
-                return () => dataRef.off('value', unsubscribe);
+                // Cleanup auth listener on unmount
+                return () => unsubscribeAuth();
             }, []);
 
 
@@ -542,7 +556,6 @@
                 }
             };
 
-
             const handleSaveMonthlySettings = () => {
                 const currentMonth = getCurrentMonthKey();
                 const monthRef = database.ref(`buildingData/monthlyBills/${currentMonth}`);
@@ -586,7 +599,6 @@
                 setShowManagerSettings(false);
                 alert(t.managerAssigned);
             };
-
 
             // ===== CREATE USER FUNCTION - Allows admin to create new users with roles =====
             const handleCreateUser = async () => {
@@ -643,8 +655,6 @@
                 }
             };
             // ===== END CREATE USER FUNCTION =====
-
-
 
             const currentMonthKey = getCurrentMonthKey();
             const currentMonthData = data.monthlyBills[currentMonthKey] || {
@@ -717,9 +727,6 @@
                             </div>
                         ) : (
                             <>
-
-
-
                                 {/* Header */}
                                 <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
                                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
@@ -1075,7 +1082,6 @@
                                     </div>
                                 )}
 
-
                                 {showCreateUser && userRole === 'admin' && (
                                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                                         <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
@@ -1120,13 +1126,17 @@
                                                         onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
                                                         className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                                     >
-                                                        <option value="manager">Manager</option>
+                                                        {userRole === 'admin' && <option value="manager">Manager</option>}
                                                         <option value="resident">Resident (View Only)</option>
                                                     </select>
                                                     <p className="text-xs text-slate-500 mt-1">
-                                                        Manager: Can manage payments | Resident: View only
+                                                        {userRole === 'admin'
+                                                            ? 'Manager: Can manage payments | Resident: View only'
+                                                            : 'Create resident accounts for building tenants'
+                                                        }
                                                     </p>
                                                 </div>
+
                                             </div>
 
                                             <div className="flex gap-2 mt-6">
@@ -1147,9 +1157,6 @@
                                         </div>
                                     </div>
                                 )}
-
-
-
 
                                 {/* Monthly Bills Section */}
                                 <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
@@ -1177,12 +1184,12 @@
                                                 NIS {monthlyProgress.paid * currentMonthData.amount} / NIS {monthlyProgress.total * currentMonthData.amount}
                                             </span>
                                         </div>
-                                       <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-                                        style={{ width: `${monthlyProgress.percentage}%` }}
-                                    />
-                                </div>
+                                        <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                                                style={{ width: `${monthlyProgress.percentage}%` }}
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
