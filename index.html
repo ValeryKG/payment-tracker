@@ -595,45 +595,46 @@
                     return;
                 }
 
-                // ===== AUTO-GENERATE EMAIL FROM USERNAME =====
                 const generatedEmail = `${newUserData.username}@building.local`;
 
                 try {
-                    // Create user in Firebase Auth with generated email
-                    const userCredential = await auth.createUserWithEmailAndPassword(
-                        generatedEmail,  // Changed: use generated email instead of newUserData.email
+                    // Create a SECONDARY Firebase app to create users without affecting current session
+                    const secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary');
+                    const secondaryAuth = secondaryApp.auth();
+
+                    // Create user with secondary app (doesn't affect main session!)
+                    const userCredential = await secondaryAuth.createUserWithEmailAndPassword(
+                        generatedEmail,
                         newUserData.password
                     );
                     const user = userCredential.user;
 
-                    // Add user role to database
+                    // NOW write to database (still logged in as admin on main app!)
                     await database.ref(`users/${user.uid}`).set({
                         role: newUserData.role,
-                        username: newUserData.username,        // Store original username
-                        email: generatedEmail,                  // Store generated email
+                        username: newUserData.username,
+                        email: generatedEmail,
                         createdAt: new Date().toISOString()
                     });
+
+                    // Sign out the secondary app and delete it
+                    await secondaryAuth.signOut();
+                    await secondaryApp.delete();
 
                     alert(`User created successfully!\nUsername: ${newUserData.username}\nEmail: ${generatedEmail}\nRole: ${newUserData.role}`);
 
                     // Reset form
                     setNewUserData({
-                        username: '',    // Changed: email → username
+                        username: '',
                         password: '',
                         role: 'manager'
                     });
                     setShowCreateUser(false);
 
-                    // Log back in as admin (creating user logs you in as new user)
-                    // ===== RESTORE ADMIN SESSION - Sign out new user, log back in as admin =====
-                    if (adminCredentials.email && adminCredentials.password) {
-                        await auth.signOut();
-                        await auth.signInWithEmailAndPassword(adminCredentials.email, adminCredentials.password);
-                    }
                 } catch (error) {
                     console.error('Create user error:', error);
                     if (error.code === 'auth/email-already-in-use') {
-                        alert('This email is already registered');
+                        alert('This username is already taken');
                     } else if (error.code === 'auth/weak-password') {
                         alert('Password should be at least 6 characters');
                     } else {
