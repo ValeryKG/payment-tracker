@@ -835,15 +835,16 @@
                                                     <Edit2 size={18} />
                                                     {t.editMonthly}
                                                 </button>
-                                                {userRole === 'admin' && (
+                                                {(userRole === 'admin' || userRole === 'manager') && (
                                                     <button
                                                         onClick={() => setShowCreateUser(true)}
                                                         className="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
                                                     >
                                                         <User size={18} />
-                                                        Create User
+                                                        {userRole === 'admin' ? 'Create User' : 'Add Resident'}
                                                     </button>
                                                 )}
+
                                             </div>
                                         </div>
                                     )}
@@ -1126,7 +1127,10 @@
                                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                                         <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
                                             <div className="flex justify-between items-center mb-4">
-                                                <h3 className="text-lg sm:text-xl font-bold">Create New User</h3>
+                                                <h3 className="text-lg sm:text-xl font-bold">
+                                                    {userRole === 'admin' ? 'Create New User' : 'Add Resident'}
+                                                </h3>
+
                                                 <button onClick={() => setShowCreateUser(false)} className="p-2 hover:bg-slate-100 rounded-lg">
                                                     <XCircle size={24} />
                                                 </button>
@@ -1165,10 +1169,18 @@
                                                         value={newUserData.role}
                                                         onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
                                                         className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        disabled={userRole === 'manager'} // Managers can't change role
                                                     >
-                                                        {userRole === 'admin' && <option value="manager">Manager</option>}
-                                                        <option value="resident">Resident (View Only)</option>
+                                                        {userRole === 'admin' ? (
+                                                            <>
+                                                                <option value="manager">Manager</option>
+                                                                <option value="resident">Resident (View Only)</option>
+                                                            </>
+                                                        ) : (
+                                                            <option value="resident">Resident (View Only)</option>
+                                                        )}
                                                     </select>
+
                                                     <p className="text-xs text-slate-500 mt-1">
                                                         {userRole === 'admin'
                                                             ? 'Manager: Can manage payments | Resident: View only'
