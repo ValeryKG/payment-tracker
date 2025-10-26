@@ -201,14 +201,14 @@
                 newManagerPassword: ''
             });
 
-           const [newUserData, setNewUserData] = useState({
+            const [newUserData, setNewUserData] = useState({
                 username: '',      // Changed: email → username
                 password: '',
                 role: 'resident'
             });
 
             // Initial default data
- const getDefaultData = () => ({
+            const getDefaultData = () => ({
                 monthlyBills: {
                     '2025-01': {
                         amount: 150,
@@ -230,14 +230,14 @@
             const [isLoading, setIsLoading] = useState(true);
 
 
-         // Load data from Firebase on mount
+            // Load data from Firebase on mount
             useEffect(() => {
                 // Check authentication state first
                 const unsubscribeAuth = auth.onAuthStateChanged((user) => {
                     if (user) {
                         // User is logged in, load data
                         const dataRef = database.ref('buildingData');
-                        
+
                         const unsubscribeData = dataRef.on('value', (snapshot) => {
                             const firebaseData = snapshot.val();
                             if (firebaseData) {
@@ -254,7 +254,7 @@
                             console.error('Data load error:', error);
                             setIsLoading(false);
                         });
-                        
+
                         // Store unsubscribe for data listener
                         return () => dataRef.off('value', unsubscribeData);
                     } else {
@@ -386,6 +386,22 @@
                 const newDate = new Date(currentDate);
                 newDate.setMonth(newDate.getMonth() + direction);
                 setCurrentDate(newDate);
+
+                const newMonthKey = `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}`;
+
+                // Ensure month data exists in Firebase (create full apartments list if missing)
+                const monthRef = database.ref(`buildingData/monthlyBills/${newMonthKey}`);
+                monthRef.once('value', (snapshot) => {
+                    if (!snapshot.exists()) {
+                        monthRef.set({
+                            amount: monthlySettings.amount || 150,
+                            dueDay: monthlySettings.dueDay || 5,
+                            apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
+                        }).catch(err => console.error('Error creating month in DB:', err));
+                    }
+                }, (err) => {
+                    console.error('Error checking month in DB:', err);
+                });
             };
 
             const getDaysUntilDue = (dueDay) => {
@@ -468,42 +484,66 @@
 
                 if (type === 'monthly') {
                     const currentMonth = getCurrentMonthKey();
-                    const apartmentRef = dataRef.child(`monthlyBills/${currentMonth}/apartments/${apartmentNum}`);
+                    const monthRef = dataRef.child(`monthlyBills/${currentMonth}`);
 
-                    // Get current status
-                    apartmentRef.once('value', (snapshot) => {
-                        const currentApt = snapshot.val() || { paid: false };
+                    monthRef.once('value', (snapshot) => {
+                        const monthData = snapshot.val() || {
+                            amount: monthlySettings.amount || 150,
+                            dueDay: monthlySettings.dueDay || 5,
+                            apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
+                        };
+
+                        // Ensure apartments object exists and has all 16 entries
+                        const existingApts = monthData.apartments || {};
+                        const newApartments = { ...Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }])), ...existingApts };
+
+                        const currentApt = newApartments[apartmentNum] || { paid: false };
                         const newStatus = !currentApt.paid;
 
-                        // Update in Firebase
-                        apartmentRef.set({
+                        newApartments[apartmentNum] = {
                             paid: newStatus,
                             date: newStatus ? new Date().toISOString().split('T')[0] : null,
-                            amount: data.monthlyBills[currentMonth]?.amount || monthlySettings.amount
-                        });
+                            amount: monthData.amount || monthlySettings.amount || 150
+                        };
+
+                        // Write whole month object back (preserve amount, dueDay)
+                        monthRef.set({
+                            amount: monthData.amount || monthlySettings.amount || 150,
+                            dueDay: monthData.dueDay || monthlySettings.dueDay || 5,
+                            apartments: newApartments
+                        }).catch(err => console.error('Error writing month data:', err));
+                    }, (err) => {
+                        console.error('Error reading month data:', err);
                     });
                 } else if (type === 'project') {
-                    const apartmentRef = dataRef.child(`projects`);
-
-                    // Get all projects
-                    apartmentRef.once('value', (snapshot) => {
+                    // Keep your existing project logic but make it robust too
+                    const projectsRef = dataRef.child('projects');
+                    projectsRef.once('value', (snapshot) => {
                         const projects = snapshot.val() || [];
                         const projectIndex = projects.findIndex(p => p.id === id);
 
                         if (projectIndex !== -1) {
-                            const currentApt = projects[projectIndex].apartments[apartmentNum];
+                            const project = projects[projectIndex];
+                            const apartments = project.apartments || {};
+                            const newApts = { ...Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }])), ...apartments };
+                            const currentApt = newApts[apartmentNum] || { paid: false };
                             const newStatus = !currentApt.paid;
 
-                            // Update specific apartment in Firebase
-                            dataRef.child(`projects/${projectIndex}/apartments/${apartmentNum}`).set({
+                            newApts[apartmentNum] = {
                                 paid: newStatus,
                                 date: newStatus ? new Date().toISOString().split('T')[0] : null,
-                                amount: projects[projectIndex].perApartment
-                            });
+                                amount: project.perApartment
+                            };
+
+                            projects[projectIndex].apartments = newApts;
+                            projectsRef.set(projects).catch(err => console.error('Error writing project:', err));
                         }
+                    }, (err) => {
+                        console.error('Error reading projects:', err);
                     });
                 }
             };
+
             const handleCreateProject = () => {
                 if (!newProject.name || !newProject.total || !newProject.dueDate) {
                     alert(t.fillAllFields);
@@ -1181,8 +1221,10 @@
                                                 {t.progress}: {monthlyProgress.paid}/{monthlyProgress.total} ({monthlyProgress.percentage}%)
                                             </span>
                                             <span className="font-medium text-slate-600">
-                                                NIS {monthlyProgress.paid * currentMonthData.amount} / NIS {monthlyProgress.total * currentMonthData.amount}
+                                                NIS {isNaN(monthlyProgress.paid * (currentMonthData.amount || monthlySettings.amount)) ? 0 : monthlyProgress.paid * (currentMonthData.amount || monthlySettings.amount)} /
+                                                NIS {isNaN(monthlyProgress.total * (currentMonthData.amount || monthlySettings.amount)) ? 0 : monthlyProgress.total * (currentMonthData.amount || monthlySettings.amount)}
                                             </span>
+
                                         </div>
                                         <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
                                             <div
