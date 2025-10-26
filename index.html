@@ -904,7 +904,7 @@
                                                         />
                                                         {newProject.total && (
                                                             <p className="text-xs text-slate-500 mt-1">
-                                                                ${(parseFloat(newProject.total) / 16).toFixed(2)} {t.perApartment}
+                                                                NIS {(parseFloat(newProject.total) / 16).toFixed(2)} {t.perApartment}
                                                             </p>
                                                         )}
                                                     </div>
@@ -1176,12 +1176,12 @@
                                                 NIS {monthlyProgress.paid * currentMonthData.amount} / NIS {monthlyProgress.total * currentMonthData.amount}
                                             </span>
                                         </div>
-                                        <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
-                                            <div
-                                                className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-                                                style={{ width: `{monthlyProgress.percentage}%` }}
-                                            />
-                                        </div>
+                                       <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                                        style={{ width: `${monthlyProgress.percentage}%` }}
+                                    />
+                                </div>
                                     </div>
 
                                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
@@ -1271,10 +1271,10 @@
                                                 </p>
                                                 <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
                                                     <span className="text-slate-600">
-                                                        <strong>{t.total}:</strong> ${project.total.toLocaleString()}
+                                                        <strong>{t.total}:</strong> NIS {project.total.toLocaleString()}
                                                     </span>
                                                     <span className="text-slate-600">
-                                                        <strong>${project.perApartment}</strong> {t.perApartment}
+                                                        <strong>NIS {project.perApartment}</strong> {t.perApartment}
                                                     </span>
                                                     <span className="text-slate-600">
                                                         <strong>{t.dueDate}:</strong> {new Date(project.dueDate).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US')}
