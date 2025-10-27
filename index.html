@@ -13,6 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         .rtl {
             direction: rtl;
@@ -729,6 +730,77 @@
 
             // ===== END CREATE USER FUNCTION =====
 
+            // ===== PAYMENT REPORT FUNCTION - Admin + Manager =====
+            const handlePaymentReport = () => {
+                try {
+                    const apartmentCount = 16; // Will be dynamic later in FIX #6
+
+                    // Prepare monthly bills data
+                    const monthlyData = [];
+                    const months = Object.keys(data.monthlyBills || {}).sort().reverse();
+
+                    // Create header row
+                    const header = ['Month', ...Array.from({ length: apartmentCount }, (_, i) => `Apt ${i + 1}`), 'Total Collected'];
+                    monthlyData.push(header);
+
+                    // Add data rows
+                    months.forEach(month => {
+                        const monthData = data.monthlyBills[month];
+                        const row = [formatMonthYear(month)];
+
+                        let collected = 0;
+                        for (let i = 1; i <= apartmentCount; i++) {
+                            const apt = monthData.apartments[i];
+                            row.push(apt?.paid ? 'PAID' : 'DUE');
+                            if (apt?.paid) collected += monthData.amount;
+                        }
+                        row.push(`NIS ${collected}`);
+                        monthlyData.push(row);
+                    });
+
+                    // Prepare projects data
+                    const projectsData = [['Project', 'Total', 'Collected', ...Array.from({ length: apartmentCount }, (_, i) => `Apt ${i + 1}`)]];
+
+                    (data.projects || []).forEach(project => {
+                        const row = [
+                            language === 'he' ? project.nameHe : project.name,
+                            `NIS ${project.total}`,
+                        ];
+
+                        let collected = 0;
+                        for (let i = 1; i <= apartmentCount; i++) {
+                            const apt = project.apartments[i];
+                            if (apt?.paid) collected += project.perApartment;
+                        }
+                        row.push(`NIS ${collected}`);
+
+                        for (let i = 1; i <= apartmentCount; i++) {
+                            const apt = project.apartments[i];
+                            row.push(apt?.paid ? 'PAID' : 'DUE');
+                        }
+                        projectsData.push(row);
+                    });
+
+                    // Create workbook
+                    const wb = XLSX.utils.book_new();
+                    const ws1 = XLSX.utils.aoa_to_sheet(monthlyData);
+                    const ws2 = XLSX.utils.aoa_to_sheet(projectsData);
+                    XLSX.utils.book_append_sheet(wb, ws1, 'Monthly Bills');
+                    XLSX.utils.book_append_sheet(wb, ws2, 'Projects');
+
+                    // Download
+                    XLSX.writeFile(wb, `payment-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+
+                    alert('✅ Report downloaded successfully!\n\nExcel file contains payment history.\nNo passwords included - safe to share.');
+                } catch (error) {
+                    console.error('Report error:', error);
+                    alert('Error creating report: ' + error.message);
+                }
+            };
+            // ===== END PAYMENT REPORT FUNCTION =====
+
+
+
             const currentMonthKey = getCurrentMonthKey();
             const currentMonthData = data.monthlyBills[currentMonthKey] || {
                 amount: monthlySettings.amount,
@@ -885,6 +957,15 @@
                                                     >
                                                         <Save size={18} />
                                                         📥 Download Backup
+                                                    </button>
+                                                )}
+                                                {(userRole === 'admin' || userRole === 'manager') && (
+                                                    <button
+                                                        onClick={handlePaymentReport}
+                                                        className="px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                                    >
+                                                        <Save size={18} />
+                                                        📊 Payment Report
                                                     </button>
                                                 )}
 
