@@ -209,8 +209,53 @@
                 role: 'resident'
             });
 
+            // ===== HELPER FUNCTIONS =====
+
+            // Get apartment count from settings
+            const getApartmentCount = () => {
+                return data.buildingSettings?.apartmentCount || 16;
+            };
+
+            // Check if building has any payment history
+            const hasPaymentHistory = () => {
+                // Check monthly bills
+                const months = Object.keys(data.monthlyBills || {});
+                for (let month of months) {
+                    const apts = data.monthlyBills[month]?.apartments || {};
+                    const hasPaid = Object.values(apts).some(apt => apt?.paid);
+                    if (hasPaid) return true;
+                }
+
+                // Check projects
+                const projects = data.projects || [];
+                for (let project of projects) {
+                    const apts = project.apartments || {};
+                    const hasPaid = Object.values(apts).some(apt => apt?.paid);
+                    if (hasPaid) return true;
+                }
+
+                return false;
+            };
+
+            // Auto-lock apartment count after first payment
+            const autoLockApartmentCount = async () => {
+                if (!data.buildingSettings?.locked && hasPaymentHistory()) {
+                    await database.ref('buildingData/buildingSettings/locked').set(true);
+                }
+            };
+            // ===== END HELPER FUNCTIONS =====
+
             // Initial default data
             const getDefaultData = () => ({
+                buildingSettings: {
+                    buildingName: "My Building",
+                    apartmentCount: 16,  // Change this for each building
+                    privacyTier: "tier1",
+                    country: "Israel",
+                    currency: "NIS",
+                    setupComplete: true,
+                    locked: false  // Will auto-lock after first payment
+                },
                 monthlyBills: {
                     '2025-01': {
                         amount: 150,
@@ -398,7 +443,7 @@
                         monthRef.set({
                             amount: monthlySettings.amount || 150,
                             dueDay: monthlySettings.dueDay || 5,
-                            apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
+                            apartments: Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }]))
                         }).catch(err => console.error('Error creating month in DB:', err));
                     }
                 }, (err) => {
@@ -481,6 +526,8 @@
             const togglePaymentStatus = (type, id, apartmentNum) => {
                 // Only managers and admins can toggle payments
                 if (!isAuthenticated || userRole === 'resident') return;
+                // Auto-lock apartment count after first payment
+                autoLockApartmentCount();
 
                 const dataRef = database.ref('buildingData');
 
@@ -492,12 +539,12 @@
                         const monthData = snapshot.val() || {
                             amount: monthlySettings.amount || 150,
                             dueDay: monthlySettings.dueDay || 5,
-                            apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
+                            apartments: Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }]))
                         };
 
                         // Ensure apartments object exists and has all 16 entries
                         const existingApts = monthData.apartments || {};
-                        const newApartments = { ...Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }])), ...existingApts };
+                        const newApartments = { ...Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }])), ...existingApts };
 
                         const currentApt = newApartments[apartmentNum] || { paid: false };
                         const newStatus = !currentApt.paid;
@@ -527,7 +574,7 @@
                         if (projectIndex !== -1) {
                             const project = projects[projectIndex];
                             const apartments = project.apartments || {};
-                            const newApts = { ...Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }])), ...apartments };
+                            const newApts = { ...Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }])), ...apartments };
                             const currentApt = newApts[apartmentNum] || { paid: false };
                             const newStatus = !currentApt.paid;
 
@@ -553,7 +600,8 @@
                 }
 
                 const total = parseFloat(newProject.total);
-                const perApartment = Math.round((total / 16) * 100) / 100;
+                const aptCount = getApartmentCount();
+                const perApartment = Math.round((total / aptCount) * 100) / 100;
 
                 const project = {
                     id: `project-${Date.now()}`,
@@ -564,7 +612,7 @@
                     dueDate: newProject.dueDate,
                     description: newProject.description || '',
                     descriptionHe: newProject.descriptionHe || newProject.description || '',
-                    apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
+                    apartments: Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }]))
                 };
 
                 // Save directly to Firebase
@@ -608,7 +656,7 @@
                         monthRef.set({
                             amount: monthlySettings.amount,
                             dueDay: monthlySettings.dueDay,
-                            apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
+                            apartments: Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }]))
                         });
                     } else {
                         monthRef.update({
@@ -733,7 +781,7 @@
             // ===== PAYMENT REPORT FUNCTION - Admin + Manager =====
             const handlePaymentReport = () => {
                 try {
-                    const apartmentCount = 16; // Will be dynamic later in FIX #6
+                    const apartmentCount = getApartmentCount();// Will be dynamic later in FIX #6
 
                     // Prepare monthly bills data
                     const monthlyData = [];
@@ -805,7 +853,7 @@
             const currentMonthData = data.monthlyBills[currentMonthKey] || {
                 amount: monthlySettings.amount,
                 dueDay: monthlySettings.dueDay,
-                apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
+                apartments: Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }]))
             };
 
             const monthlyProgress = calculateProgress(currentMonthData.apartments);
@@ -1077,7 +1125,7 @@
                                                         />
                                                         {newProject.total && (
                                                             <p className="text-xs text-slate-500 mt-1">
-                                                                NIS {(parseFloat(newProject.total) / 16).toFixed(2)} {t.perApartment}
+                                                                NIS {(parseFloat(newProject.total) / getApartmentCount()).toFixed(2)} {t.perApartment}
                                                             </p>
                                                         )}
                                                     </div>
