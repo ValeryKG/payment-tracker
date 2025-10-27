@@ -181,6 +181,7 @@
             const [showMonthlySettings, setShowMonthlySettings] = useState(false);
             const [showManagerSettings, setShowManagerSettings] = useState(false);
             const [showCreateUser, setShowCreateUser] = useState(false);
+            const [showExportModal, setShowExportModal] = useState(false);
 
             const [newProject, setNewProject] = useState({
                 name: '',
@@ -694,6 +695,38 @@
                     }
                 }
             };
+
+            // ===== END CREATE USER FUNCTION =====
+
+            // ===== MANUAL BACKUP FUNCTION - Admin Only =====
+            const handleFullBackup = async () => {
+                try {
+                    // Get ALL data from Firebase
+                    const snapshot = await database.ref().once('value');
+                    const fullData = snapshot.val();
+
+                    // Create JSON file
+                    const dataStr = JSON.stringify(fullData, null, 2);
+                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+                    // Create download link
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `building-backup-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+
+                    alert('✅ Backup downloaded successfully!\n\nFile contains all building data including user credentials.\nKeep this file secure!');
+                } catch (error) {
+                    console.error('Backup error:', error);
+                    alert('Error creating backup: ' + error.message);
+                }
+            };
+            // ===== END MANUAL BACKUP FUNCTION =====
+
             // ===== END CREATE USER FUNCTION =====
 
             const currentMonthKey = getCurrentMonthKey();
@@ -842,6 +875,16 @@
                                                     >
                                                         <User size={18} />
                                                         {userRole === 'admin' ? 'Create User' : 'Add Resident'}
+                                                    </button>
+                                                )}
+
+                                                {userRole === 'admin' && (
+                                                    <button
+                                                        onClick={handleFullBackup}
+                                                        className="px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                                    >
+                                                        <Save size={18} />
+                                                        📥 Download Backup
                                                     </button>
                                                 )}
 
