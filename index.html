@@ -351,6 +351,8 @@
                     if (user) {
                         // User is logged in, load data
                         const dataRef = database.ref('buildingData');
+                        // Check for auto-backups (weekly/monthly)
+                        checkAndCreateAutoBackups();
 
                         const unsubscribeData = dataRef.on('value', (snapshot) => {
                             const firebaseData = snapshot.val();
@@ -726,14 +728,22 @@
                 setShowProjectForm(false);
                 alert(t.projectCreated);
             };
-            const handleDeleteProject = (projectId) => {
+            const handleDeleteProject = async (projectId) => {
                 if (window.confirm(t.confirmDelete)) {
+                    // Create backup before deletion  If manager deletes wrong project, you can restore it.
                     const projectsRef = database.ref('buildingData/projects');
-                    projectsRef.once('value', (snapshot) => {
-                        const currentProjects = snapshot.val() || [];
-                        const updatedProjects = currentProjects.filter(p => p.id !== projectId);
-                        projectsRef.set(updatedProjects);
+                    const snapshot = await projectsRef.once('value');
+                    const currentProjects = snapshot.val() || [];
+                    const projectToDelete = currentProjects.find(p => p.id === projectId);
+
+                    await createBackup('before_project_deletion', {
+                        projectId: projectId,
+                        projectName: projectToDelete?.name || 'Unknown'
                     });
+
+                    // Now delete
+                    const updatedProjects = currentProjects.filter(p => p.id !== projectId);
+                    await projectsRef.set(updatedProjects);
                 }
             };
 
@@ -791,6 +801,15 @@
                 const generatedEmail = `${newUserData.username}@building.local`;
 
                 try {
+                    // Create backup before user creation (admin only)
+                    if (userRole === 'admin') {
+                        await createBackup('before_user_creation', {
+                            username: newUserData.username,
+                            role: newUserData.role
+                        });
+                    }
+
+                    // Create a SECONDARY Firebase app to create users without affecting current session
                     // Create a SECONDARY Firebase app to create users without affecting current session
                     const secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary');
                     const secondaryAuth = secondaryApp.auth();
@@ -938,6 +957,101 @@
             };
             // ===== END PAYMENT REPORT FUNCTION =====
 
+            // ===== AUTO-BACKUP SYSTEM =====
+            const createBackup = async (triggerType, metadata = {}) => {
+                try {
+                    // Get complete buildingData and users
+                    const buildingSnapshot = await database.ref('buildingData').once('value');
+                    const usersSnapshot = await database.ref('users').once('value');
+
+                    const buildingData = buildingSnapshot.val();
+                    const usersData = usersSnapshot.val();
+
+                    // Create backup object
+                    const backup = {
+                        timestamp: new Date().toISOString(),
+                        triggerType: triggerType, // 'weekly_auto', 'monthly_auto', 'before_user_creation', 'before_project_deletion'
+                        metadata: metadata,
+                        dataSnapshot: {
+                            buildingData: buildingData,
+                            users: usersData
+                        }
+                    };
+
+                    // Generate unique backup key
+                    const backupKey = `backup-${Date.now()}`;
+
+                    // Save to supportBackups node
+                    await database.ref(`supportBackups/${backupKey}`).set(backup);
+
+                    // Cleanup old backups (keep last 50)
+                    await cleanupOldBackups();
+
+                    console.log(`✅ Backup created: ${triggerType}`);
+                    return true;
+                } catch (error) {
+                    console.error('Backup creation error:', error);
+                    return false;
+                }
+            };
+
+            const cleanupOldBackups = async () => {
+                try {
+                    const backupsRef = database.ref('supportBackups');
+                    const snapshot = await backupsRef.once('value');
+                    const backups = snapshot.val();
+
+                    if (!backups) return;
+
+                    // Convert to array and sort by timestamp (oldest first)
+                    const backupArray = Object.entries(backups).map(([key, data]) => ({
+                        key,
+                        timestamp: data.timestamp
+                    }));
+
+                    backupArray.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+                    // If more than 50, delete oldest ones
+                    if (backupArray.length > 50) {
+                        const toDelete = backupArray.slice(0, backupArray.length - 50);
+                        for (let backup of toDelete) {
+                            await database.ref(`supportBackups/${backup.key}`).remove();
+                        }
+                        console.log(`🗑️ Cleaned up ${toDelete.length} old backups`);
+                    }
+                } catch (error) {
+                    console.error('Cleanup error:', error);
+                }
+            };
+
+            const checkAndCreateAutoBackups = async () => {
+                try {
+                    const now = new Date();
+                    const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                    const dayOfMonth = now.getDate();
+
+                    // Check last backup times from localStorage
+                    const lastWeeklyBackup = localStorage.getItem('lastWeeklyBackup');
+                    const lastMonthlyBackup = localStorage.getItem('lastMonthlyBackup');
+
+                    const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
+
+                    // Weekly backup (every Sunday)
+                    if (dayOfWeek === 0 && lastWeeklyBackup !== today) {
+                        await createBackup('weekly_auto', { day: 'Sunday' });
+                        localStorage.setItem('lastWeeklyBackup', today);
+                    }
+
+                    // Monthly backup (1st of month)
+                    if (dayOfMonth === 1 && lastMonthlyBackup !== today) {
+                        await createBackup('monthly_auto', { month: now.toLocaleString('en-US', { month: 'long', year: 'numeric' }) });
+                        localStorage.setItem('lastMonthlyBackup', today);
+                    }
+                } catch (error) {
+                    console.error('Auto-backup check error:', error);
+                }
+            };
+            // ===== END AUTO-BACKUP SYSTEM =====
 
 
             const currentMonthKey = getCurrentMonthKey();
@@ -1098,6 +1212,25 @@
                                                         {t.downloadBackup}
                                                     </button>
                                                 )}
+
+                                                {/* TEST BUTTON - Remove after debugging */}
+                                                {userRole === 'admin' && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            console.log('🧪 Testing backup creation...');
+                                                            const result = await createBackup('manual_test', { source: 'test_button' });
+                                                            if (result) {
+                                                                alert('✅ Test backup created! Check Firebase Console → supportBackups');
+                                                            } else {
+                                                                alert('❌ Backup failed! Check browser console for errors.');
+                                                            }
+                                                        }}
+                                                        className="px-4 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                                    >
+                                                        🧪 Test Backup
+                                                    </button>
+                                                )}
+
                                                 {(userRole === 'admin' || userRole === 'manager') && (
                                                     <button
                                                         onClick={handlePaymentReport}
