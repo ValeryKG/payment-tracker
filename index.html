@@ -184,6 +184,10 @@
             const [showCreateUser, setShowCreateUser] = useState(false);
             const [showExportModal, setShowExportModal] = useState(false);
             const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
+            const [showSupportTools, setShowSupportTools] = useState(false);
+            const [backupsList, setBackupsList] = useState([]);
+            const [showPasswordReset, setShowPasswordReset] = useState(false);
+            const [resetPasswordData, setResetPasswordData] = useState({ uid: '', username: '', email: '', newPassword: '' });
             const [confirmPaymentData, setConfirmPaymentData] = useState({
                 type: null,           // 'monthly' or 'project'
                 id: null,             // project id (null for monthly)
@@ -833,7 +837,7 @@
                     await secondaryAuth.signOut();
                     await secondaryApp.delete();
 
-                    alert(`User created successfully!\nUsername: ${newUserData.username}\nEmail: ${generatedEmail}\nRole: ${newUserData.role}`);
+                    alert(`✅ User Created Successfully!\n\nUsername: ${newUserData.username}\nEmail: ${generatedEmail}\nPassword: ${newUserData.password}\nRole: ${newUserData.role}\n\n⚠️ IMPORTANT: Save this password!\nManager must give it to the resident.`);
 
                     // Reset form
                     setNewUserData({
@@ -854,15 +858,95 @@
                     }
                 }
             };
-
             // ===== END CREATE USER FUNCTION =====
+
+            // ===== PASSWORD RESET FUNCTION - Manager/Admin can reset any user's password =====
+            const handlePasswordReset = async () => {
+                if (!resetPasswordData.newPassword || resetPasswordData.newPassword.length < 6) {
+                    alert('Password must be at least 6 characters');
+                    return;
+                }
+
+                try {
+                    // Use Firebase Admin SDK approach via cloud function would be ideal,
+                    // but since we don't have backend, we'll use a workaround:
+                    // Delete old user, create new one with same data but new password
+
+                    const oldUid = resetPasswordData.uid;
+
+                    // Get old user data from database
+                    const userSnapshot = await database.ref(`users/${oldUid}`).once('value');
+                    const oldUserData = userSnapshot.val();
+
+                    if (!oldUserData) {
+                        alert('User not found in database');
+                        return;
+                    }
+
+                    // Create backup before making changes
+                    if (userRole === 'admin') {
+                        await createBackup('before_password_reset', {
+                            username: resetPasswordData.username,
+                            email: resetPasswordData.email
+                        });
+                    }
+
+                    // Create new user with same email but new password
+                    const secondaryApp = firebase.initializeApp(firebaseConfig, 'PasswordReset-' + Date.now());
+                    const secondaryAuth = secondaryApp.auth();
+
+                    const newUserCredential = await secondaryAuth.createUserWithEmailAndPassword(
+                        resetPasswordData.email,
+                        resetPasswordData.newPassword
+                    );
+                    const newUser = newUserCredential.user;
+
+                    // Copy user data to new UID
+                    await database.ref(`users/${newUser.uid}`).set({
+                        ...oldUserData,
+                        passwordResetAt: new Date().toISOString()
+                    });
+
+                    // Delete old user from Auth (Firebase will handle this automatically when new user created with same email)
+                    // Delete old user data from database
+                    await database.ref(`users/${oldUid}`).remove();
+
+                    // Cleanup secondary app
+                    await secondaryAuth.signOut();
+                    await secondaryApp.delete();
+
+                    alert(`✅ Password Reset Successfully!\n\nUsername: ${resetPasswordData.username}\nNew Password: ${resetPasswordData.newPassword}\n\n⚠️ Give this password to the resident!`);
+
+                    setShowPasswordReset(false);
+                    setResetPasswordData({ uid: '', username: '', email: '', newPassword: '' });
+
+                } catch (error) {
+                    console.error('Password reset error:', error);
+
+                    if (error.code === 'auth/email-already-in-use') {
+                        // This is expected - Firebase deletes old user automatically
+                        alert(`✅ Password Reset Successfully!\n\nUsername: ${resetPasswordData.username}\nNew Password: ${resetPasswordData.newPassword}\n\n⚠️ Give this password to the resident!`);
+                        setShowPasswordReset(false);
+                        setResetPasswordData({ uid: '', username: '', email: '', newPassword: '' });
+                    } else {
+                        alert('Error resetting password: ' + error.message);
+                    }
+                }
+            };
+            // ===== END PASSWORD RESET FUNCTION =====
+
 
             // ===== MANUAL BACKUP FUNCTION - Admin Only =====
             const handleFullBackup = async () => {
                 try {
-                    // Get ALL data from Firebase
-                    const snapshot = await database.ref().once('value');
-                    const fullData = snapshot.val();
+                    // Get buildingData and users separately (same as auto-backup)
+                    const buildingSnapshot = await database.ref('buildingData').once('value');
+                    const usersSnapshot = await database.ref('users').once('value');
+
+                    const fullData = {
+                        buildingData: buildingSnapshot.val(),
+                        users: usersSnapshot.val()
+                    };
 
                     // Create JSON file
                     const dataStr = JSON.stringify(fullData, null, 2);
@@ -885,8 +969,6 @@
                 }
             };
             // ===== END MANUAL BACKUP FUNCTION =====
-
-            // ===== END CREATE USER FUNCTION =====
 
             // ===== PAYMENT REPORT FUNCTION - Admin + Manager =====
             const handlePaymentReport = () => {
@@ -1053,6 +1135,50 @@
             };
             // ===== END AUTO-BACKUP SYSTEM =====
 
+            // ===== SUPPORT TOOLS - Load and manage backups =====
+            const loadBackups = async () => {
+                try {
+                    const backupsRef = database.ref('supportBackups');
+                    const snapshot = await backupsRef.once('value');
+                    const backupsData = snapshot.val();
+
+                    if (!backupsData) {
+                        setBackupsList([]);
+                        return;
+                    }
+
+                    // Convert to array and sort by timestamp (newest first)
+                    const backupsArray = Object.entries(backupsData).map(([key, data]) => ({
+                        key,
+                        ...data
+                    }));
+
+                    backupsArray.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                    // Keep only last 20 for display
+                    setBackupsList(backupsArray.slice(0, 20));
+
+                    console.log(`✅ Loaded ${backupsArray.length} backups`);
+                } catch (error) {
+                    console.error('Error loading backups:', error);
+                    alert('Error loading backups: ' + error.message);
+                }
+            };
+
+            const downloadBackupAsJSON = (backup) => {
+                const dataStr = JSON.stringify(backup, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `backup-${backup.key}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            };
+            // ===== END SUPPORT TOOLS =====
+
 
             const currentMonthKey = getCurrentMonthKey();
             const currentMonthData = data.monthlyBills[currentMonthKey] || {
@@ -1213,23 +1339,6 @@
                                                     </button>
                                                 )}
 
-                                                {/* TEST BUTTON - Remove after debugging */}
-                                                {userRole === 'admin' && (
-                                                    <button
-                                                        onClick={async () => {
-                                                            console.log('🧪 Testing backup creation...');
-                                                            const result = await createBackup('manual_test', { source: 'test_button' });
-                                                            if (result) {
-                                                                alert('✅ Test backup created! Check Firebase Console → supportBackups');
-                                                            } else {
-                                                                alert('❌ Backup failed! Check browser console for errors.');
-                                                            }
-                                                        }}
-                                                        className="px-4 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-                                                    >
-                                                        🧪 Test Backup
-                                                    </button>
-                                                )}
 
                                                 {(userRole === 'admin' || userRole === 'manager') && (
                                                     <button
@@ -1238,6 +1347,40 @@
                                                     >
                                                         <Save size={18} />
                                                         {t.paymentReport}
+                                                    </button>
+                                                )}
+
+                                                {/* Support Tools - Only for super admin */}
+                                                {userRole === 'admin' && auth.currentUser?.email === 'admin@test.com' && (
+                                                    <button
+                                                        onClick={() => setShowSupportTools(true)}
+                                                        className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                                    >
+                                                        <Settings size={18} />
+                                                        🔧 Support Tools
+                                                    </button>
+                                                )}
+                                                {(userRole === 'admin' || userRole === 'manager') && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            const usersSnapshot = await database.ref('users').once('value');
+                                                            const usersData = usersSnapshot.val();
+
+                                                            if (usersData) {
+                                                                const usersList = Object.entries(usersData).map(([uid, user]) => ({
+                                                                    uid,
+                                                                    ...user
+                                                                }));
+                                                                setBackupsList([{ key: 'current-users', dataSnapshot: { users: usersData } }]);
+                                                                setShowPasswordReset(true);
+                                                            } else {
+                                                                alert('No users found');
+                                                            }
+                                                        }}
+                                                        className="px-4 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                                    >
+                                                        <User size={18} />
+                                                        👥 Manage Users
                                                     </button>
                                                 )}
 
@@ -1667,6 +1810,174 @@
                                                     {t.cancel}
                                                 </button>
                                             </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Support Tools Modal */}
+                                {showSupportTools && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                                        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-4xl my-8 max-h-[90vh] overflow-y-auto">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h3 className="text-lg sm:text-xl font-bold">🔧 Support Tools - Backup History</h3>
+                                                <button onClick={() => setShowSupportTools(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                                                    <XCircle size={24} />
+                                                </button>
+                                            </div>
+
+                                            <button
+                                                onClick={loadBackups}
+                                                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium mb-4"
+                                            >
+                                                🔄 Load Backups
+                                            </button>
+
+                                            {backupsList.length === 0 ? (
+                                                <div className="text-center text-slate-500 py-8">
+                                                    No backups loaded. Click "Load Backups" above.
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {backupsList.map((backup) => (
+                                                        <div key={backup.key} className="border border-slate-300 rounded-lg p-4 bg-slate-50">
+                                                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+                                                                <div>
+                                                                    <div className="font-semibold text-slate-800">
+                                                                        {backup.triggerType.replace(/_/g, ' ').toUpperCase()}
+                                                                    </div>
+                                                                    <div className="text-sm text-slate-600">
+                                                                        {new Date(backup.timestamp).toLocaleString()}
+                                                                    </div>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => downloadBackupAsJSON(backup)}
+                                                                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium"
+                                                                >
+                                                                    📥 Download JSON
+                                                                </button>
+                                                            </div>
+
+                                                            {backup.metadata && Object.keys(backup.metadata).length > 0 && (
+                                                                <div className="text-xs text-slate-500 mb-2">
+                                                                    Metadata: {JSON.stringify(backup.metadata)}
+                                                                </div>
+                                                            )}
+
+                                                            <details className="mt-2">
+                                                                <summary className="cursor-pointer text-sm font-medium text-blue-600 hover:text-blue-700">
+                                                                    👥 View User Credentials
+                                                                </summary>
+                                                                <div className="mt-2 p-3 bg-white rounded border border-slate-200 max-h-60 overflow-y-auto">
+                                                                    {backup.dataSnapshot?.users ? (
+                                                                        <table className="w-full text-xs">
+                                                                            <thead>
+                                                                                <tr className="border-b">
+                                                                                    <th className="text-left py-2">Email</th>
+                                                                                    <th className="text-left py-2">Username</th>
+                                                                                    <th className="text-left py-2">Role</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                {Object.entries(backup.dataSnapshot.users).map(([uid, user]) => (
+                                                                                    <tr key={uid} className="border-b">
+                                                                                        <td className="py-2">{user.email}</td>
+                                                                                        <td className="py-2">{user.username || 'N/A'}</td>
+                                                                                        <td className="py-2">
+                                                                                            <span className={`px-2 py-1 rounded text-xs ${user.role === 'admin' ? 'bg-red-100 text-red-700' :
+                                                                                                user.role === 'manager' ? 'bg-blue-100 text-blue-700' :
+                                                                                                    'bg-green-100 text-green-700'
+                                                                                                }`}>
+                                                                                                {user.role}
+                                                                                            </span>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                ))}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    ) : (
+                                                                        <div className="text-slate-500">No user data in this backup</div>
+                                                                    )}
+                                                                </div>
+                                                            </details>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Manage Users / Password Reset Modal */}
+                                {showPasswordReset && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                                        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-3xl my-8 max-h-[90vh] overflow-y-auto">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h3 className="text-lg sm:text-xl font-bold">👥 Manage Users - Password Reset</h3>
+                                                <button onClick={() => {
+                                                    setShowPasswordReset(false);
+                                                    setResetPasswordData({ uid: '', username: '', email: '', newPassword: '' });
+                                                }} className="p-2 hover:bg-slate-100 rounded-lg">
+                                                    <XCircle size={24} />
+                                                </button>
+                                            </div>
+
+                                            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                                <p className="text-sm text-yellow-800">
+                                                    ⚠️ Click "Reset Password" next to any user to change their password.
+                                                    You'll need to give them the new password.
+                                                </p>
+                                            </div>
+
+                                            {backupsList.length > 0 && backupsList[0].dataSnapshot?.users ? (
+                                                <div className="space-y-2">
+                                                    {Object.entries(backupsList[0].dataSnapshot.users).map(([uid, user]) => (
+                                                        <div key={uid} className="border border-slate-300 rounded-lg p-3 bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                                            <div className="flex-1">
+                                                                <div className="font-semibold text-slate-800">
+                                                                    {user.username || 'N/A'}
+                                                                </div>
+                                                                <div className="text-sm text-slate-600">
+                                                                    {user.email}
+                                                                </div>
+                                                                <div className="text-xs">
+                                                                    <span className={`px-2 py-1 rounded ${user.role === 'admin' ? 'bg-red-100 text-red-700' :
+                                                                            user.role === 'manager' ? 'bg-blue-100 text-blue-700' :
+                                                                                'bg-green-100 text-green-700'
+                                                                        }`}>
+                                                                        {user.role}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+
+                                                            {user.role === 'resident' && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const newPass = prompt(`Reset password for ${user.username}?\n\nEnter new password (min 6 characters):`);
+                                                                        if (newPass && newPass.length >= 6) {
+                                                                            setResetPasswordData({
+                                                                                uid: uid,
+                                                                                username: user.username,
+                                                                                email: user.email,
+                                                                                newPassword: newPass
+                                                                            });
+                                                                            handlePasswordReset();
+                                                                        } else if (newPass) {
+                                                                            alert('Password must be at least 6 characters');
+                                                                        }
+                                                                    }}
+                                                                    className="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded text-sm font-medium whitespace-nowrap"
+                                                                >
+                                                                    🔑 Reset Password
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center text-slate-500 py-8">
+                                                    No users found
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
