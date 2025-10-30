@@ -1,13 +1,19 @@
 {
   "rules": {
-    "buildingData": {
-      ".read": "auth != null",
-      ".write": "auth != null && (
-        root.child('users').child(auth.uid).child('role').val() === 'admin' ||
-        root.child('users').child(auth.uid).child('role').val() === 'manager'
-      )"
-    },
-    
+   "buildingData": {
+  ".read": "auth != null",
+  ".write": "auth != null && (
+    root.child('users').child(auth.uid).child('role').val() === 'admin' ||
+    root.child('users').child(auth.uid).child('role').val() === 'manager'
+  )",
+  "buildingSettings": {
+    "privacyOptOuts": {
+      "$apartmentNum": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('apartmentNumber').val() == $apartmentNum"
+      }
+    }
+  }
+},
 "users": {
   ".read": "auth != null && (
     root.child('users').child(auth.uid).child('role').val() === 'admin' ||
