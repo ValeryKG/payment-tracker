@@ -222,7 +222,8 @@
             const [newUserData, setNewUserData] = useState({
                 username: '',      // Changed: email → username
                 password: '',
-                role: 'resident'
+                role: 'resident',
+                apartmentNumber: ''
             });
 
             // ===== HELPER FUNCTIONS =====
@@ -653,15 +654,12 @@
                         localStorage.setItem('isAuthenticated', 'true');
                         localStorage.setItem('userRole', role);
 
-                        // Extract apartment number for residents
+                        // Load apartment number for residents
                         if (role === 'resident') {
-                            const usernameSnapshot = await database.ref(`users/${user.uid}/username`).once('value');
-                            const username = usernameSnapshot.val();
-
-                            // Extract number from username (e.g., "apt5" → 5, "apt10" → 10)
-                            const aptMatch = username?.match(/\d+/);
-                            if (aptMatch) {
-                                setResidentApartmentNum(aptMatch[0]);
+                            const aptNumSnapshot = await database.ref(`users/${user.uid}/apartmentNumber`).once('value');
+                            const aptNum = aptNumSnapshot.val();
+                            if (aptNum) {
+                                setResidentApartmentNum(aptNum);
                             }
                         }
 
@@ -871,6 +869,10 @@
                     alert('Please fill username and password');
                     return;
                 }
+                if (newUserData.role === 'resident' && !newUserData.apartmentNumber) {
+                    alert('Please select apartment number for resident');
+                    return;
+                }
 
                 const generatedEmail = `${newUserData.username}@building.local`;
 
@@ -900,6 +902,7 @@
                         role: newUserData.role,
                         username: newUserData.username,
                         email: generatedEmail,
+                        apartmentNumber: newUserData.apartmentNumber || null,
                         createdAt: new Date().toISOString()
                     });
 
@@ -913,7 +916,8 @@
                     setNewUserData({
                         username: '',
                         password: '',
-                        role: 'manager'
+                        role: 'resident',
+                        apartmentNumber: ''
                     });
                     setShowCreateUser(false);
 
@@ -1792,23 +1796,23 @@
                                                     <p className="text-xs text-slate-500 mt-1">Minimum 6 characters</p>
                                                 </div>
                                                 <div>
-    <label className="block text-sm font-medium text-slate-700 mb-1">Apartment Number</label>
-    <select
-        value={newUserData.apartmentNumber || ''}
-        onChange={(e) => setNewUserData({ ...newUserData, apartmentNumber: e.target.value })}
-        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
-    >
-        <option value="">Select Apartment</option>
-        {[...Array(getApartmentCount())].map((_, i) => (
-            <option key={i + 1} value={i + 1}>
-                Apartment {i + 1}
-            </option>
-        ))}
-    </select>
-    <p className="text-xs text-slate-500 mt-1">
-        Required for residents. Links user to their apartment.
-    </p>
-</div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Apartment Number</label>
+                                                    <select
+                                                        value={newUserData.apartmentNumber || ''}
+                                                        onChange={(e) => setNewUserData({ ...newUserData, apartmentNumber: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                    >
+                                                        <option value="">Select Apartment</option>
+                                                        {[...Array(getApartmentCount())].map((_, i) => (
+                                                            <option key={i + 1} value={i + 1}>
+                                                                Apartment {i + 1}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <p className="text-xs text-slate-500 mt-1">
+                                                        Required for residents. Links user to their apartment.
+                                                    </p>
+                                                </div>
 
                                                 <div>
                                                     <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
@@ -1817,7 +1821,7 @@
                                                         onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
                                                         className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                                         disabled={userRole === 'manager'} // Managers can't change role
-                                                        
+
                                                     >
                                                         {userRole === 'admin' ? (
                                                             <>
@@ -2222,91 +2226,89 @@
                                 )}
 
                                 {/* Resident Settings Panel */}
-{showResidentPanel && userRole === 'resident' && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg sm:text-xl font-bold">⚙️ Resident Settings</h3>
-                <button onClick={() => setShowResidentPanel(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                    <XCircle size={24} />
-                </button>
-            </div>
+                                {showResidentPanel && userRole === 'resident' && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h3 className="text-lg sm:text-xl font-bold">⚙️ Resident Settings</h3>
+                                                <button onClick={() => setShowResidentPanel(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                                                    <XCircle size={24} />
+                                                </button>
+                                            </div>
 
-            {data.buildingSettings?.privacyTier === 'tier2' ? (
-                <>
-                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm text-blue-800">
-                            <strong>Privacy Control:</strong> You can choose whether other residents can see your payment status.
-                        </p>
-                    </div>
+                                            {data.buildingSettings?.privacyTier === 'tier2' ? (
+                                                <>
+                                                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                                        <p className="text-sm text-blue-800">
+                                                            <strong>Privacy Control:</strong> You can choose whether other residents can see your payment status.
+                                                        </p>
+                                                    </div>
 
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-300">
-                            <div className="flex-1">
-                                <h4 className="font-semibold text-slate-800 mb-1">Hide My Payment Status</h4>
-                                <p className="text-sm text-slate-600">
-                                    When ON, other residents see "🔒 Private" instead of your payment status.
-                                </p>
-                                <p className="text-xs text-slate-500 mt-1">
-                                    Note: Manager and admin always see your status.
-                                </p>
-                            </div>
-                            <button
-                                onClick={async () => {
-                                    if (residentApartmentNum) {
-                                        const currentOptOut = data.buildingSettings?.privacyOptOuts?.[residentApartmentNum] || false;
-                                        await database.ref(`buildingData/buildingSettings/privacyOptOuts/${residentApartmentNum}`).set(!currentOptOut);
-                                    }
-                                }}
-                                className={`ml-4 relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                                    data.buildingSettings?.privacyOptOuts?.[residentApartmentNum]
-                                        ? 'bg-green-600'
-                                        : 'bg-slate-300'
-                                }`}
-                            >
-                                <span
-                                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                                        data.buildingSettings?.privacyOptOuts?.[residentApartmentNum]
-                                            ? 'translate-x-7'
-                                            : 'translate-x-1'
-                                    }`}
-                                />
-                            </button>
-                        </div>
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-300">
+                                                            <div className="flex-1">
+                                                                <h4 className="font-semibold text-slate-800 mb-1">Hide My Payment Status</h4>
+                                                                <p className="text-sm text-slate-600">
+                                                                    When ON, other residents see "🔒 Private" instead of your payment status.
+                                                                </p>
+                                                                <p className="text-xs text-slate-500 mt-1">
+                                                                    Note: Manager and admin always see your status.
+                                                                </p>
+                                                            </div>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (residentApartmentNum) {
+                                                                        const currentOptOut = data.buildingSettings?.privacyOptOuts?.[residentApartmentNum] || false;
+                                                                        await database.ref(`buildingData/buildingSettings/privacyOptOuts/${residentApartmentNum}`).set(!currentOptOut);
+                                                                    }
+                                                                }}
+                                                                className={`ml-4 relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${data.buildingSettings?.privacyOptOuts?.[residentApartmentNum]
+                                                                        ? 'bg-green-600'
+                                                                        : 'bg-slate-300'
+                                                                    }`}
+                                                            >
+                                                                <span
+                                                                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${data.buildingSettings?.privacyOptOuts?.[residentApartmentNum]
+                                                                            ? 'translate-x-7'
+                                                                            : 'translate-x-1'
+                                                                        }`}
+                                                                />
+                                                            </button>
+                                                        </div>
 
-                        <div className="p-3 bg-slate-100 rounded-lg">
-                            <p className="text-sm text-slate-700">
-                                <strong>Current Status:</strong> {
-                                    data.buildingSettings?.privacyOptOuts?.[residentApartmentNum]
-                                        ? '🔒 Hidden from others'
-                                        : '👁️ Visible to all residents'
-                                }
-                            </p>
-                        </div>
-                    </div>
-                </>
-            ) : (
-                <div className="p-4 bg-slate-50 rounded-lg border border-slate-300">
-                    <p className="text-sm text-slate-600">
-                        Privacy controls are not available in the current privacy tier.
-                    </p>
-                    <p className="text-xs text-slate-500 mt-2">
-                        {data.buildingSettings?.privacyTier === 'tier1' 
-                            ? 'Building uses Tier 1 (Full Transparency) - all payments visible to everyone.'
-                            : 'Building uses Tier 3 (Manager-Only View) - only manager sees payments.'}
-                    </p>
-                </div>
-            )}
+                                                        <div className="p-3 bg-slate-100 rounded-lg">
+                                                            <p className="text-sm text-slate-700">
+                                                                <strong>Current Status:</strong> {
+                                                                    data.buildingSettings?.privacyOptOuts?.[residentApartmentNum]
+                                                                        ? '🔒 Hidden from others'
+                                                                        : '👁️ Visible to all residents'
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-300">
+                                                    <p className="text-sm text-slate-600">
+                                                        Privacy controls are not available in the current privacy tier.
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 mt-2">
+                                                        {data.buildingSettings?.privacyTier === 'tier1'
+                                                            ? 'Building uses Tier 1 (Full Transparency) - all payments visible to everyone.'
+                                                            : 'Building uses Tier 3 (Manager-Only View) - only manager sees payments.'}
+                                                    </p>
+                                                </div>
+                                            )}
 
-            <button
-                onClick={() => setShowResidentPanel(false)}
-                className="w-full mt-4 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors"
-            >
-                Close
-            </button>
-        </div>
-    </div>
-)}
+                                            <button
+                                                onClick={() => setShowResidentPanel(false)}
+                                                className="w-full mt-4 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors"
+                                            >
+                                                Close
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
 
                                 {/* Monthly Bills Section */}
