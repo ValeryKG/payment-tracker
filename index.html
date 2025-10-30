@@ -188,6 +188,8 @@
             const [backupsList, setBackupsList] = useState([]);
             const [showPasswordReset, setShowPasswordReset] = useState(false);
             const [showPrivacySettings, setShowPrivacySettings] = useState(false);
+            const [showResidentPanel, setShowResidentPanel] = useState(false);
+            const [residentApartmentNum, setResidentApartmentNum] = useState(null);
             const [resetPasswordData, setResetPasswordData] = useState({ uid: '', username: '', email: '', newPassword: '' });
             const [confirmPaymentData, setConfirmPaymentData] = useState({
                 type: null,           // 'monthly' or 'project'
@@ -476,7 +478,20 @@
                     createUser: 'Create User',
                     addResident: 'Add Resident',
                     downloadBackup: '📥 Download Backup',
-                    paymentReport: '📊 Payment Report'
+                    paymentReport: '📊 Payment Report',
+                    privacySettings: 'Privacy Settings',
+                    privacyWarning: 'Warning: Changing privacy settings affects all residents\' ability to see payment statuses.',
+                    tier1Title: 'Tier 1: Full Transparency',
+                    tier1Desc: 'Everyone can see all payment statuses for all apartments. Maximum transparency.',
+                    tier1Example: 'Example: "Apt 5 - PAID ✓" visible to all residents',
+                    tier2Title: 'Tier 2: Opt-In Privacy',
+                    tier2Desc: 'Each apartment can choose to hide their payment status from others. Manager always sees everything.',
+                    tier2Example: 'Example: "Apt 5 - 🔒 Private" if opted out',
+                    tier3Title: 'Tier 3: Manager-Only View',
+                    tier3Desc: 'Only manager and admin can see payment statuses. Residents see only their own status.',
+                    tier3Example: 'Example: Residents see "Your Status: PAID ✓" only',
+                    currentSetting: 'Current Setting',
+                    privateStatus: 'Private'
                 },
                 he: {
                     title: 'מעקב תשלומים בבניין',
@@ -535,7 +550,20 @@
                     createUser: 'צור משתמש',
                     addResident: 'הוסף דייר',
                     downloadBackup: '📥 גיבוי מלא',
-                    paymentReport: '📊 דוח תשלומים'
+                    paymentReport: '📊 דוח תשלומים',
+                    privacySettings: 'הגדרות פרטיות',
+                    privacyWarning: 'אזהרה: שינוי הגדרות פרטיות משפיע על יכולת כל הדיירים לראות סטטוס תשלומים.',
+                    tier1Title: 'רמה 1: שקיפות מלאה',
+                    tier1Desc: 'כולם יכולים לראות את כל סטטוסי התשלומים של כל הדירות. שקיפות מקסימלית.',
+                    tier1Example: 'דוגמה: "דירה 5 - שולם ✓" גלוי לכל הדיירים',
+                    tier2Title: 'רמה 2: פרטיות בחירה',
+                    tier2Desc: 'כל דירה יכולה לבחור להסתיר את סטטוס התשלום שלה מאחרים. המנהל תמיד רואה הכל.',
+                    tier2Example: 'דוגמה: "דירה 5 - 🔒 פרטי" אם בחרו להסתיר',
+                    tier3Title: 'רמה 3: תצוגת מנהל בלבד',
+                    tier3Desc: 'רק מנהל ואדמין יכולים לראות סטטוסי תשלומים. דיירים רואים רק את הסטטוס שלהם.',
+                    tier3Example: 'דוגמה: דיירים רואים "הסטטוס שלך: שולם ✓" בלבד',
+                    currentSetting: 'הגדרה נוכחית',
+                    privateStatus: 'פרטי'
                 }
             };
 
@@ -624,6 +652,18 @@
                         setIsAuthenticated(true);
                         localStorage.setItem('isAuthenticated', 'true');
                         localStorage.setItem('userRole', role);
+
+                        // Extract apartment number for residents
+                        if (role === 'resident') {
+                            const usernameSnapshot = await database.ref(`users/${user.uid}/username`).once('value');
+                            const username = usernameSnapshot.val();
+
+                            // Extract number from username (e.g., "apt5" → 5, "apt10" → 10)
+                            const aptMatch = username?.match(/\d+/);
+                            if (aptMatch) {
+                                setResidentApartmentNum(aptMatch[0]);
+                            }
+                        }
 
                         // ===== STORE ADMIN CREDENTIALS - Needed for session restoration =====
                         if (role === 'admin') {
@@ -1294,14 +1334,26 @@
                                             </button>
                                             {isAuthenticated ? (
                                                 <>
-                                                    {userRole !== 'resident' && (
-                                                        <button
-                                                            onClick={() => setShowAdminPanel(!showAdminPanel)}
-                                                            className="px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 transition-colors"
-                                                        >
-                                                            <Settings size={16} />
-                                                            {userRole === 'admin' ? t.adminPanel : t.managerPanel}
-                                                        </button>
+                                                    {isAuthenticated && (
+                                                        <>
+                                                            {userRole !== 'resident' ? (
+                                                                <button
+                                                                    onClick={() => setShowAdminPanel(!showAdminPanel)}
+                                                                    className="px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 transition-colors"
+                                                                >
+                                                                    <Settings size={16} />
+                                                                    {userRole === 'admin' ? t.adminPanel : t.managerPanel}
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => setShowResidentPanel(!showResidentPanel)}
+                                                                    className="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 transition-colors"
+                                                                >
+                                                                    <Settings size={16} />
+                                                                    Settings
+                                                                </button>
+                                                            )}
+                                                        </>
                                                     )}
                                                     <button
                                                         onClick={() => {
@@ -1739,6 +1791,24 @@
                                                     />
                                                     <p className="text-xs text-slate-500 mt-1">Minimum 6 characters</p>
                                                 </div>
+                                                <div>
+    <label className="block text-sm font-medium text-slate-700 mb-1">Apartment Number</label>
+    <select
+        value={newUserData.apartmentNumber || ''}
+        onChange={(e) => setNewUserData({ ...newUserData, apartmentNumber: e.target.value })}
+        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+    >
+        <option value="">Select Apartment</option>
+        {[...Array(getApartmentCount())].map((_, i) => (
+            <option key={i + 1} value={i + 1}>
+                Apartment {i + 1}
+            </option>
+        ))}
+    </select>
+    <p className="text-xs text-slate-500 mt-1">
+        Required for residents. Links user to their apartment.
+    </p>
+</div>
 
                                                 <div>
                                                     <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
@@ -1747,6 +1817,7 @@
                                                         onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
                                                         className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                                         disabled={userRole === 'manager'} // Managers can't change role
+                                                        
                                                     >
                                                         {userRole === 'admin' ? (
                                                             <>
@@ -2026,7 +2097,7 @@
                                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                                         <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-2xl">
                                             <div className="flex justify-between items-center mb-4">
-                                                <h3 className="text-lg sm:text-xl font-bold">🔒 Privacy Settings</h3>
+                                                <h3 className="text-lg sm:text-xl font-bold">🔒 {t.privacySettings}</h3>
                                                 <button onClick={() => setShowPrivacySettings(false)} className="p-2 hover:bg-slate-100 rounded-lg">
                                                     <XCircle size={24} />
                                                 </button>
@@ -2034,7 +2105,7 @@
 
                                             <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                                                 <p className="text-sm text-yellow-800">
-                                                    ⚠️ <strong>Warning:</strong> Changing privacy settings affects all residents' ability to see payment statuses.
+                                                    ⚠️ <strong>{t.privacyWarning}</strong>
                                                 </p>
                                             </div>
 
@@ -2058,12 +2129,12 @@
                                                             )}
                                                         </div>
                                                         <div className="flex-1">
-                                                            <h4 className="font-bold text-slate-800 mb-1">Tier 1: Full Transparency</h4>
+                                                            <h4 className="font-bold text-slate-800 mb-1">{t.tier1Title}</h4>
                                                             <p className="text-sm text-slate-600">
-                                                                Everyone can see all payment statuses for all apartments. Maximum transparency.
+                                                                {t.tier1Desc}
                                                             </p>
                                                             <p className="text-xs text-slate-500 mt-1">
-                                                                Example: "Apt 5 - PAID ✓" visible to all residents
+                                                                {t.tier1Example}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -2088,12 +2159,12 @@
                                                             )}
                                                         </div>
                                                         <div className="flex-1">
-                                                            <h4 className="font-bold text-slate-800 mb-1">Tier 2: Opt-In Privacy</h4>
+                                                            <h4 className="font-bold text-slate-800 mb-1">{t.tier2Title}</h4>
                                                             <p className="text-sm text-slate-600">
-                                                                Each apartment can choose to hide their payment status from others. Manager always sees everything.
+                                                                {t.tier2Desc}
                                                             </p>
                                                             <p className="text-xs text-slate-500 mt-1">
-                                                                Example: "Apt 5 - 🔒 Private" if opted out
+                                                                {t.tier2Example}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -2118,12 +2189,12 @@
                                                             )}
                                                         </div>
                                                         <div className="flex-1">
-                                                            <h4 className="font-bold text-slate-800 mb-1">Tier 3: Manager-Only View</h4>
+                                                            <h4 className="font-bold text-slate-800 mb-1">{t.tier3Title}</h4>
                                                             <p className="text-sm text-slate-600">
-                                                                Only manager and admin can see payment statuses. Residents see only their own status.
+                                                                {t.tier3Desc}
                                                             </p>
                                                             <p className="text-xs text-slate-500 mt-1">
-                                                                Example: Residents see "Your Status: PAID ✓" only
+                                                                {t.tier3Example}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -2132,7 +2203,7 @@
 
                                             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                                 <p className="text-sm text-blue-800">
-                                                    <strong>Current Setting:</strong> {
+                                                    <strong>{t.currentSetting}:</strong> {
                                                         data.buildingSettings?.privacyTier === 'tier1' ? 'Tier 1 - Full Transparency' :
                                                             data.buildingSettings?.privacyTier === 'tier2' ? 'Tier 2 - Opt-In Privacy' :
                                                                 'Tier 3 - Manager-Only View'
@@ -2149,6 +2220,93 @@
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Resident Settings Panel */}
+{showResidentPanel && userRole === 'resident' && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg sm:text-xl font-bold">⚙️ Resident Settings</h3>
+                <button onClick={() => setShowResidentPanel(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                    <XCircle size={24} />
+                </button>
+            </div>
+
+            {data.buildingSettings?.privacyTier === 'tier2' ? (
+                <>
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                            <strong>Privacy Control:</strong> You can choose whether other residents can see your payment status.
+                        </p>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-300">
+                            <div className="flex-1">
+                                <h4 className="font-semibold text-slate-800 mb-1">Hide My Payment Status</h4>
+                                <p className="text-sm text-slate-600">
+                                    When ON, other residents see "🔒 Private" instead of your payment status.
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Note: Manager and admin always see your status.
+                                </p>
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    if (residentApartmentNum) {
+                                        const currentOptOut = data.buildingSettings?.privacyOptOuts?.[residentApartmentNum] || false;
+                                        await database.ref(`buildingData/buildingSettings/privacyOptOuts/${residentApartmentNum}`).set(!currentOptOut);
+                                    }
+                                }}
+                                className={`ml-4 relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                                    data.buildingSettings?.privacyOptOuts?.[residentApartmentNum]
+                                        ? 'bg-green-600'
+                                        : 'bg-slate-300'
+                                }`}
+                            >
+                                <span
+                                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                                        data.buildingSettings?.privacyOptOuts?.[residentApartmentNum]
+                                            ? 'translate-x-7'
+                                            : 'translate-x-1'
+                                    }`}
+                                />
+                            </button>
+                        </div>
+
+                        <div className="p-3 bg-slate-100 rounded-lg">
+                            <p className="text-sm text-slate-700">
+                                <strong>Current Status:</strong> {
+                                    data.buildingSettings?.privacyOptOuts?.[residentApartmentNum]
+                                        ? '🔒 Hidden from others'
+                                        : '👁️ Visible to all residents'
+                                }
+                            </p>
+                        </div>
+                    </div>
+                </>
+            ) : (
+                <div className="p-4 bg-slate-50 rounded-lg border border-slate-300">
+                    <p className="text-sm text-slate-600">
+                        Privacy controls are not available in the current privacy tier.
+                    </p>
+                    <p className="text-xs text-slate-500 mt-2">
+                        {data.buildingSettings?.privacyTier === 'tier1' 
+                            ? 'Building uses Tier 1 (Full Transparency) - all payments visible to everyone.'
+                            : 'Building uses Tier 3 (Manager-Only View) - only manager sees payments.'}
+                    </p>
+                </div>
+            )}
+
+            <button
+                onClick={() => setShowResidentPanel(false)}
+                className="w-full mt-4 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors"
+            >
+                Close
+            </button>
+        </div>
+    </div>
+)}
 
 
                                 {/* Monthly Bills Section */}
@@ -2243,7 +2401,7 @@
                                                                     <Lock size={20} className="text-slate-400" />
                                                                 </div>
                                                                 <div className="text-xs font-semibold text-slate-500">
-                                                                    🔒 Private
+                                                                    🔒 {t.privateStatus}
                                                                 </div>
                                                             </>
                                                         )}
@@ -2379,7 +2537,7 @@
                                                                             <Lock size={20} className="text-slate-400" />
                                                                         </div>
                                                                         <div className="text-xs font-semibold text-slate-500">
-                                                                            🔒 Private
+                                                                            🔒 {t.privateStatus}
                                                                         </div>
                                                                     </>
                                                                 )}
