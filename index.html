@@ -333,10 +333,11 @@
                         setShowPaymentConfirm(true);
                     });
                 } else if (type === 'project') {
+                    // SIMPLIFIED: Assume push-key object; id = pushKey
                     const projectsRef = dataRef.child('projects');
                     projectsRef.once('value', (snapshot) => {
-                        const projects = snapshot.val() || [];
-                        const project = projects.find(p => p.id === id);
+                        const projects = snapshot.val() || {};
+                        const project = projects[id];  // Direct access—no array/find needed
 
                         if (project) {
                             const apartments = project.apartments || {};
@@ -345,13 +346,15 @@
                             // Show confirmation modal
                             setConfirmPaymentData({
                                 type: 'project',
-                                id: id,
+                                id: id,  // pushKey for confirm handler
                                 apartmentNum: apartmentNum,
                                 currentStatus: currentApt.paid,
                                 amount: project.perApartment,
                                 name: language === 'he' ? project.nameHe : project.name
                             });
                             setShowPaymentConfirm(true);
+                        } else {
+                            console.error('Project not found for pushKey:', id);  // Simple debug
                         }
                     });
                 }
@@ -376,14 +379,9 @@
                         apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
                     }
                 },
-                projects: [],
-                announcements: [],
-                settings: {
-                    currentManager: 'manager@building.com',
-                    managerPassword: 'manager123',
-                    admin: 'admin@building.com',
-                    adminPassword: 'admin123'
-                }
+                projects: {},  // CHANGED: Empty object (for push keys)
+                announcements: {},  // CHANGED: Empty object (consistent with your fix)
+                // REMOVED: settings node entirely—no more hardcoded passwords!
             });
 
             // Load data from Firebase
@@ -391,6 +389,7 @@
             const [isLoading, setIsLoading] = useState(true);
 
 
+            // Load data from Firebase on mount
             // Load data from Firebase on mount
             useEffect(() => {
                 // Check authentication state first
@@ -403,16 +402,34 @@
 
                         const unsubscribeData = dataRef.on('value', (snapshot) => {
                             const firebaseData = snapshot.val();
+                            let processedData;
+
                             if (firebaseData) {
-                                setData(firebaseData);
-                                setIsLoading(false);
+                                // NEW: Process projects to attach push keys (for delete/toggle)
+                                processedData = { ...firebaseData };
+                                if (processedData.projects) {
+                                    processedData.projectsWithKeys = Object.entries(processedData.projects).map(([pushKey, project]) => ({
+                                        ...project,
+                                        pushKey  // Attach the key temporarily for easy access
+                                    }));
+                                }
+                                setData(processedData);
                             } else {
                                 // First time - save default data to Firebase
                                 const defaultData = getDefaultData();
                                 dataRef.set(defaultData);
-                                setData(defaultData);
-                                setIsLoading(false);
+
+                                // NEW: Process defaults too (projects: {} becomes projectsWithKeys: [])
+                                processedData = { ...defaultData };
+                                if (processedData.projects) {
+                                    processedData.projectsWithKeys = Object.entries(processedData.projects).map(([pushKey, project]) => ({
+                                        ...project,
+                                        pushKey
+                                    }));
+                                }
+                                setData(processedData);
                             }
+                            setIsLoading(false);  // CHANGED: Moved outside if/else
                         }, (error) => {
                             console.error('Data load error:', error);
                             setIsLoading(false);
@@ -701,6 +718,7 @@
             const confirmTogglePaymentStatus = (type, id, apartmentNum) => {
                 // Only managers and admins can toggle payments
                 if (!isAuthenticated || userRole === 'resident') return;
+
                 // Auto-lock apartment count after first payment
                 autoLockApartmentCount();
 
@@ -717,9 +735,12 @@
                             apartments: Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }]))
                         };
 
-                        // Ensure apartments object exists and has all 16 entries
+                        // Ensure apartments object exists and has all entries
                         const existingApts = monthData.apartments || {};
-                        const newApartments = { ...Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }])), ...existingApts };
+                        const newApartments = {
+                            ...Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }])),
+                            ...existingApts
+                        };
 
                         const currentApt = newApartments[apartmentNum] || { paid: false };
                         const newStatus = !currentApt.paid;
@@ -740,16 +761,19 @@
                         console.error('Error reading month data:', err);
                     });
                 } else if (type === 'project') {
-                    // Keep your existing project logic but make it robust too
-                    const projectsRef = dataRef.child('projects');
+                    // SIMPLIFIED: Assume push-key object; id = pushKey—no fallback search
+                    const projectsRef = database.ref('buildingData/projects');
                     projectsRef.once('value', (snapshot) => {
-                        const projects = snapshot.val() || [];
-                        const projectIndex = projects.findIndex(p => p.id === id);
+                        const projectsObj = snapshot.val() || {};
+                        const project = projectsObj[id];  // Direct access
+                        const pushKey = id;  // id is the pushKey
 
-                        if (projectIndex !== -1) {
-                            const project = projects[projectIndex];
+                        if (project && pushKey) {
                             const apartments = project.apartments || {};
-                            const newApts = { ...Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }])), ...apartments };
+                            const newApts = {
+                                ...Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }])),
+                                ...apartments
+                            };
                             const currentApt = newApts[apartmentNum] || { paid: false };
                             const newStatus = !currentApt.paid;
 
@@ -759,16 +783,22 @@
                                 amount: project.perApartment
                             };
 
-                            projects[projectIndex].apartments = newApts;
-                            projectsRef.set(projects).catch(err => console.error('Error writing project:', err));
+                            // Update specific project by pushKey
+                            projectsRef.child(pushKey).child('apartments').set(newApts)
+                                .catch(err => console.error('Error updating project apartments:', err));
+                        } else {
+                            console.error('Project not found for pushKey:', id);
                         }
                     }, (err) => {
                         console.error('Error reading projects:', err);
                     });
                 }
+
+                // Close modal
+                setShowPaymentConfirm(false);
             };
 
-            const handleCreateProject = () => {
+            const handleCreateProject = async () => {  // NEW: async for await
                 if (!newProject.name || !newProject.total || !newProject.dueDate) {
                     alert(t.fillAllFields);
                     return;
@@ -778,8 +808,7 @@
                 const aptCount = getApartmentCount();
                 const perApartment = Math.round((total / aptCount) * 100) / 100;
 
-                const project = {
-                    id: `project-${Date.now()}`,
+                const projectData = {  // RENAMED: No 'id' needed—push generates key
                     name: newProject.name,
                     nameHe: newProject.nameHe || newProject.name,
                     total: total,
@@ -787,45 +816,49 @@
                     dueDate: newProject.dueDate,
                     description: newProject.description || '',
                     descriptionHe: newProject.descriptionHe || newProject.description || '',
-                    apartments: Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }]))
+                    apartments: Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }])),
+                    createdAt: new Date().toISOString()  // NEW: For sorting/filtering
                 };
 
-                // Save directly to Firebase
-                const projectsRef = database.ref('buildingData/projects');
-                projectsRef.once('value', (snapshot) => {
-                    const currentProjects = snapshot.val() || [];
-                    const updatedProjects = [...currentProjects, project];
-                    projectsRef.set(updatedProjects);
-                });
-
-                setNewProject({
-                    name: '',
-                    nameHe: '',
-                    total: '',
-                    dueDate: '',
-                    description: '',
-                    descriptionHe: ''
-                });
-
-                setShowProjectForm(false);
-                alert(t.projectCreated);
-            };
-            const handleDeleteProject = async (projectId) => {
-                if (window.confirm(t.confirmDelete)) {
-                    // Create backup before deletion  If manager deletes wrong project, you can restore it.
-                    const projectsRef = database.ref('buildingData/projects');
-                    const snapshot = await projectsRef.once('value');
-                    const currentProjects = snapshot.val() || [];
-                    const projectToDelete = currentProjects.find(p => p.id === projectId);
-
-                    await createBackup('before_project_deletion', {
-                        projectId: projectId,
-                        projectName: projectToDelete?.name || 'Unknown'
+                try {
+                    // CHANGED: Use .push() like announcements
+                    await database.ref('buildingData/projects').push(projectData);
+                    alert(t.projectCreated);
+                    setNewProject({
+                        name: '',
+                        nameHe: '',
+                        total: '',
+                        dueDate: '',
+                        description: '',
+                        descriptionHe: ''
                     });
+                    setShowProjectForm(false);
+                } catch (error) {
+                    console.error('Error creating project:', error);
+                    alert('❌ Error: ' + error.message);
+                }
+            };
+            const handleDeleteProject = async (projectPushKey) => {  // CHANGED: Pass pushKey, not custom id
+                if (window.confirm(t.confirmDelete)) {
+                    try {
+                        // Backup logic stays the same (gets full projects object)
+                        const projectsRef = database.ref('buildingData/projects');
+                        const snapshot = await projectsRef.once('value');
+                        const currentProjects = snapshot.val() || {};
+                        const projectToDelete = currentProjects[projectPushKey];  // CHANGED: Access by key
 
-                    // Now delete
-                    const updatedProjects = currentProjects.filter(p => p.id !== projectId);
-                    await projectsRef.set(updatedProjects);
+                        await createBackup('before_project_deletion', {
+                            projectPushKey: projectPushKey,
+                            projectName: projectToDelete?.name || 'Unknown'
+                        });
+
+                        // CHANGED: Remove by push key
+                        await projectsRef.child(projectPushKey).remove();
+                        alert('✅ Project deleted successfully!');
+                    } catch (error) {
+                        console.error('Error deleting project:', error);
+                        alert('❌ Error: ' + error.message);
+                    }
                 }
             };
 
@@ -1372,7 +1405,7 @@
                                     >
                                         {t.login}
                                     </button>
-                                    <p className="text-xs text-slate-500 mt-4 text-center">Demo: admin@test.com / admin123 or apt1 / test123</p>
+                                    <p className="text-xs text-slate-500 mt-4 text-center">2025@Valery</p>
                                 </div>
                             </div>
                         ) : (
@@ -2591,12 +2624,14 @@
                                 </div>
 
                                 {/* Special Projects */}
-                                {data.projects && data.projects.length > 0 && data.projects.map(project => {
+                                {/* Special Projects */}
+                                {data.projectsWithKeys && data.projectsWithKeys.length > 0 && data.projectsWithKeys.map(project => {
                                     const projectProgress = calculateProgress(project.apartments);
                                     const projectDaysUntil = getProjectDaysUntilDue(project.dueDate);
+                                    const projectPushKey = project.pushKey;  // NEW: From attached key
 
                                     return (
-                                        <div key={project.id} className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
+                                        <div key={projectPushKey} className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
                                             <div className="mb-4">
                                                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
                                                     <div className="flex-1">
@@ -2606,7 +2641,7 @@
                                                             </h2>
                                                             {isAuthenticated && (
                                                                 <button
-                                                                    onClick={() => handleDeleteProject(project.id)}
+                                                                    onClick={() => handleDeleteProject(projectPushKey)}  // CHANGED: Pass pushKey
                                                                     className="p-1 hover:bg-red-100 rounded text-red-600 touch-manipulation"
                                                                 >
                                                                     <Trash2 size={18} />
@@ -2667,7 +2702,7 @@
                                                     return (
                                                         <div
                                                             key={num}
-                                                            onClick={() => isAuthenticated && userRole !== 'resident' && togglePaymentStatus('project', project.id, num)}
+                                                            onClick={() => isAuthenticated && userRole !== 'resident' && togglePaymentStatus('project', project.pushKey, num)}
                                                             className={`p-3 sm:p-4 rounded-lg border-2 transition-all touch-manipulation ${canSee
                                                                 ? (isPaid
                                                                     ? 'bg-blue-50 border-blue-500 active:bg-blue-100'
