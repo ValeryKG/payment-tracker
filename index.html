@@ -388,9 +388,6 @@
             const [data, setData] = useState(getDefaultData());
             const [isLoading, setIsLoading] = useState(true);
 
-
-            // Load data from Firebase on mount
-            // Load data from Firebase on mount
             useEffect(() => {
                 // Check authentication state first
                 const unsubscribeAuth = auth.onAuthStateChanged((user) => {
@@ -413,6 +410,13 @@
                                         pushKey  // Attach the key temporarily for easy access
                                     }));
                                 }
+
+                                if (processedData.announcements) {
+                                    processedData.announcementsWithKeys = Object.entries(processedData.announcements)
+                                        .map(([pushKey, ann]) => ({ ...ann, pushKey }))
+                                        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));  // Newest first
+                                }
+
                                 setData(processedData);
                             } else {
                                 // First time - save default data to Firebase
@@ -946,7 +950,22 @@
                     alert('❌ Error: ' + error.message);
                 }
             };
-
+// ===== DELETE ANNOUNCEMENT (Admin/Manager only) - NEW =====
+const handleDeleteAnnouncement = async (pushKey) => {
+    if (userRole !== 'admin' && userRole !== 'manager') {
+        alert('Only admins and managers can delete announcements.');
+        return;
+    }
+    if (window.confirm('Delete this announcement?')) {
+        try {
+            await database.ref(`buildingData/announcements/${pushKey}`).remove();
+            alert('✅ Announcement deleted!');
+        } catch (err) {
+            console.error('Error deleting announcement:', err);
+            alert('❌ Could not delete.');
+        }
+    }
+};
 
             // ===== CREATE USER FUNCTION - Allows admin to create new users with roles =====
             const handleCreateUser = async () => {
@@ -2520,6 +2539,54 @@
                                     </div>
                                 )}
 
+                                {/* Announcements Section - NEW */}
+                                {data.announcementsWithKeys && data.announcementsWithKeys.length > 0 ? (
+                                    <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <div className="flex justify-between items-center mb-4">
+    <h2 className="text-xl sm:text-2xl font-bold text-slate-800">📢 Announcements</h2>
+</div>
+                                        </div>
+                                        <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                                            {data.announcementsWithKeys
+                                                .filter(ann => !ann.expiresAt || new Date(ann.expiresAt) > new Date())  // Hide expired
+                                                .map(ann => {
+                                                    const priorityClass = ann.priority === 'critical' ? 'border-red-500 bg-red-50' :
+                                                        ann.priority === 'urgent' ? 'border-orange-500 bg-orange-50' :
+                                                            'border-green-500 bg-green-50';
+                                                    return (
+                                                        <div key={ann.pushKey} className={`p-4 rounded-lg ${priorityClass}`}>
+                                                            <div className="flex justify-between items-start mb-2">
+                                                                <h3 className="font-semibold text-slate-800 text-lg">
+                                                                    {language === 'he' ? ann.titleHe : ann.titleEn}
+                                                                </h3>
+                                                                {isAuthenticated && (userRole === 'admin' || userRole === 'manager') && (
+                                                                    <button
+                                                                        onClick={() => handleDeleteAnnouncement(ann.pushKey)}
+                                                                        className="p-1 text-red-500 hover:bg-red-100 rounded"
+                                                                        title="Delete"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-slate-700 mb-3 leading-relaxed">
+                                                                {language === 'he' ? ann.messageHe : ann.messageEn}
+                                                            </p>
+                                                            <div className="flex justify-between text-xs text-slate-500">
+                                                                <span>By {ann.postedByRole} on {new Date(ann.createdAt).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US')}</span>
+                                                                {ann.expiresAt && <span>Expires: {new Date(ann.expiresAt).toLocaleDateString()}</span>}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
+                                        {data.announcementsWithKeys.filter(ann => !ann.expiresAt || new Date(ann.expiresAt) > new Date()).length === 0 && (
+                                            <p className="text-center text-slate-500 py-4 italic">No active announcements.</p>
+                                        )}
+                                    </div>
+                                ) : null}
+
                                 {/* Monthly Bills Section */}
                                 <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
                                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
@@ -2623,7 +2690,6 @@
                                     </div>
                                 </div>
 
-                                {/* Special Projects */}
                                 {/* Special Projects */}
                                 {data.projectsWithKeys && data.projectsWithKeys.length > 0 && data.projectsWithKeys.map(project => {
                                     const projectProgress = calculateProgress(project.apartments);
