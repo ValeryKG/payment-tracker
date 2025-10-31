@@ -866,29 +866,46 @@
                 }
             };
 
-            const handleSaveMonthlySettings = () => {
-                const currentMonth = getCurrentMonthKey();
-                const monthRef = database.ref(`buildingData/monthlyBills/${currentMonth}`);
+            const handleSaveMonthlySettings = async () => {
+                if (!window.confirm("⚠️ This will change the monthly price for all future months. Continue?")) {
+                    return;
+                }
 
-                monthRef.once('value', (snapshot) => {
-                    const currentMonthData = snapshot.val();
-                    if (!currentMonthData) {
-                        monthRef.set({
-                            amount: monthlySettings.amount,
-                            dueDay: monthlySettings.dueDay,
-                            apartments: Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }]))
-                        });
-                    } else {
-                        monthRef.update({
-                            amount: monthlySettings.amount,
-                            dueDay: monthlySettings.dueDay
-                        });
+                const currentMonthKey = getCurrentMonthKey();
+                const newAmount = monthlySettings.amount;
+                const newDueDay = monthlySettings.dueDay;
+                const dataRef = database.ref("buildingData/monthlyBills");
+
+                try {
+                    // Get all months currently in database
+                    const snapshot = await dataRef.once("value");
+                    const months = snapshot.val() || {};
+
+                    const allMonthKeys = Object.keys(months);
+                    for (const key of allMonthKeys) {
+                        if (key > currentMonthKey) {
+                            // Future month → update price
+                            await dataRef.child(key).update({
+                                amount: newAmount,
+                                dueDay: newDueDay
+                            });
+                        }
                     }
-                });
 
-                setShowMonthlySettings(false);
-                alert(t.settingsSaved);
+                    // Always update current month explicitly
+                    await dataRef.child(currentMonthKey).update({
+                        amount: newAmount,
+                        dueDay: newDueDay
+                    });
+
+                    alert("✅ Monthly bill updated! All future months will use the new price.");
+                    setShowMonthlySettings(false);
+                } catch (error) {
+                    console.error("Error updating monthly bills:", error);
+                    alert("❌ Error updating monthly bills: " + error.message);
+                }
             };
+
 
             const handleAssignManager = () => {
                 if (!managerSettings.newManagerEmail || !managerSettings.newManagerPassword) {
@@ -950,22 +967,22 @@
                     alert('❌ Error: ' + error.message);
                 }
             };
-// ===== DELETE ANNOUNCEMENT (Admin/Manager only) - NEW =====
-const handleDeleteAnnouncement = async (pushKey) => {
-    if (userRole !== 'admin' && userRole !== 'manager') {
-        alert('Only admins and managers can delete announcements.');
-        return;
-    }
-    if (window.confirm('Delete this announcement?')) {
-        try {
-            await database.ref(`buildingData/announcements/${pushKey}`).remove();
-            alert('✅ Announcement deleted!');
-        } catch (err) {
-            console.error('Error deleting announcement:', err);
-            alert('❌ Could not delete.');
-        }
-    }
-};
+            // ===== DELETE ANNOUNCEMENT (Admin/Manager only) - NEW =====
+            const handleDeleteAnnouncement = async (pushKey) => {
+                if (userRole !== 'admin' && userRole !== 'manager') {
+                    alert('Only admins and managers can delete announcements.');
+                    return;
+                }
+                if (window.confirm('Delete this announcement?')) {
+                    try {
+                        await database.ref(`buildingData/announcements/${pushKey}`).remove();
+                        alert('✅ Announcement deleted!');
+                    } catch (err) {
+                        console.error('Error deleting announcement:', err);
+                        alert('❌ Could not delete.');
+                    }
+                }
+            };
 
             // ===== CREATE USER FUNCTION - Allows admin to create new users with roles =====
             const handleCreateUser = async () => {
@@ -1503,12 +1520,17 @@ const handleDeleteAnnouncement = async (pushKey) => {
                                                     {t.createProject}
                                                 </button>
                                                 <button
-                                                    onClick={() => setShowMonthlySettings(true)}
-                                                    className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                                    onClick={() => {
+                                                        if (window.confirm("⚠️ Are you sure you want to edit the monthly bill settings?")) {
+                                                            setShowMonthlySettings(true);
+                                                        }
+                                                    }}
+                                                    className="px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
                                                 >
                                                     <Edit2 size={18} />
                                                     {t.editMonthly}
                                                 </button>
+
                                                 {(userRole === 'admin' || userRole === 'manager') && (
                                                     <button
                                                         onClick={() => setShowCreateUser(true)}
@@ -2544,8 +2566,8 @@ const handleDeleteAnnouncement = async (pushKey) => {
                                     <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
                                         <div className="flex justify-between items-center mb-4">
                                             <div className="flex justify-between items-center mb-4">
-    <h2 className="text-xl sm:text-2xl font-bold text-slate-800">📢 Announcements</h2>
-</div>
+                                                <h2 className="text-xl sm:text-2xl font-bold text-slate-800">📢 Announcements</h2>
+                                            </div>
                                         </div>
                                         <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
                                             {data.announcementsWithKeys
