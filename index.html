@@ -190,6 +190,15 @@
             const [showPrivacySettings, setShowPrivacySettings] = useState(false);
             const [showResidentPanel, setShowResidentPanel] = useState(false);
             const [residentApartmentNum, setResidentApartmentNum] = useState(null);
+            const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
+            const [newAnnouncement, setNewAnnouncement] = useState({
+                titleEn: '',
+                titleHe: '',
+                messageEn: '',
+                messageHe: '',
+                priority: 'normal',
+                expiresAt: ''
+            });
             const [resetPasswordData, setResetPasswordData] = useState({ uid: '', username: '', email: '', newPassword: '' });
             const [confirmPaymentData, setConfirmPaymentData] = useState({
                 type: null,           // 'monthly' or 'project'
@@ -368,6 +377,7 @@
                     }
                 },
                 projects: [],
+                announcements: [],
                 settings: {
                     currentManager: 'manager@building.com',
                     managerPassword: 'manager123',
@@ -862,6 +872,48 @@
                 setShowManagerSettings(false);
                 alert(t.managerAssigned);
             };
+
+            // ===== HANDLE POST ANNOUNCEMENT =====
+            const handlePostAnnouncement = async () => {
+                // Fix: Require BOTH title AND message (alert if either is missing)
+                if (!newAnnouncement.titleEn || !newAnnouncement.messageEn) {
+                    alert('Please fill at least the English title and message.');
+                    return;
+                }
+
+                const announcementData = {
+                    titleEn: newAnnouncement.titleEn,
+                    titleHe: newAnnouncement.titleHe || newAnnouncement.titleEn,
+                    messageEn: newAnnouncement.messageEn,
+                    messageHe: newAnnouncement.messageHe || newAnnouncement.messageEn,
+                    priority: newAnnouncement.priority,
+                    expiresAt: newAnnouncement.expiresAt || null,
+                    // Add these extra fields from your inline handler
+                    id: `announcement-${Date.now()}`,  // Custom ID (optional; Firebase push ID is better for uniqueness)
+                    postedBy: auth.currentUser?.email || 'Unknown',
+                    postedByRole: userRole,
+                    createdAt: new Date().toISOString()
+                };
+
+                try {
+                    // Use .push() to append as object (correct for RTDB lists)
+                    await firebase.database().ref('buildingData/announcements').push(announcementData);
+                    alert('✅ Announcement posted successfully!');
+                    setNewAnnouncement({
+                        titleEn: '',
+                        titleHe: '',
+                        messageEn: '',
+                        messageHe: '',
+                        priority: 'normal',
+                        expiresAt: ''
+                    });
+                    setShowAnnouncementForm(false);
+                } catch (error) {
+                    console.error('Error posting announcement:', error);
+                    alert('❌ Error: ' + error.message);
+                }
+            };
+
 
             // ===== CREATE USER FUNCTION - Allows admin to create new users with roles =====
             const handleCreateUser = async () => {
@@ -1477,6 +1529,15 @@
                                                     >
                                                         <Lock size={18} />
                                                         🔒 Privacy Settings
+                                                    </button>
+                                                )}
+                                                {(userRole === 'admin' || userRole === 'manager') && (
+                                                    <button
+                                                        onClick={() => setShowAnnouncementForm(true)}
+                                                        className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                                    >
+                                                        <Plus size={18} />
+                                                        📢 Post Announcement
                                                     </button>
                                                 )}
                                             </div>
@@ -2263,14 +2324,14 @@
                                                                     }
                                                                 }}
                                                                 className={`ml-4 relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${data.buildingSettings?.privacyOptOuts?.[residentApartmentNum]
-                                                                        ? 'bg-green-600'
-                                                                        : 'bg-slate-300'
+                                                                    ? 'bg-green-600'
+                                                                    : 'bg-slate-300'
                                                                     }`}
                                                             >
                                                                 <span
                                                                     className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${data.buildingSettings?.privacyOptOuts?.[residentApartmentNum]
-                                                                            ? 'translate-x-7'
-                                                                            : 'translate-x-1'
+                                                                        ? 'translate-x-7'
+                                                                        : 'translate-x-1'
                                                                         }`}
                                                                 />
                                                             </button>
@@ -2309,7 +2370,122 @@
                                         </div>
                                     </div>
                                 )}
+                                {/* Post Announcement Modal */}
+                                {showAnnouncementForm && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                                        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-2xl my-8">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h3 className="text-lg sm:text-xl font-bold">📢 Post Announcement</h3>
+                                                <button onClick={() => setShowAnnouncementForm(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                                                    <XCircle size={24} />
+                                                </button>
+                                            </div>
 
+                                            <div className="space-y-4">
+                                                {/* Title English */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Title (English)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newAnnouncement.titleEn}
+                                                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, titleEn: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        placeholder="Building Meeting"
+                                                    />
+                                                </div>
+
+                                                {/* Title Hebrew */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Title (Hebrew)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newAnnouncement.titleHe}
+                                                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, titleHe: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        placeholder="אסיפת בית"
+                                                        dir="rtl"
+                                                    />
+                                                </div>
+
+                                                {/* Message English */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Message (English)</label>
+                                                    <textarea
+                                                        value={newAnnouncement.messageEn}
+                                                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, messageEn: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        rows="4"
+                                                        placeholder="Important meeting this Sunday at 7 PM in the lobby..."
+                                                    />
+                                                </div>
+
+                                                {/* Message Hebrew */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Message (Hebrew)</label>
+                                                    <textarea
+                                                        value={newAnnouncement.messageHe}
+                                                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, messageHe: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                        rows="4"
+                                                        placeholder="אסיפה חשובה ביום ראשון בשעה 19:00 בלובי..."
+                                                        dir="rtl"
+                                                    />
+                                                </div>
+
+                                                {/* Priority */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Priority Level</label>
+                                                    <select
+                                                        value={newAnnouncement.priority}
+                                                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, priority: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                    >
+                                                        <option value="normal">🟢 Normal</option>
+                                                        <option value="urgent">🟠 Urgent</option>
+                                                        <option value="critical">🔴 Critical</option>
+                                                    </select>
+                                                    <p className="text-xs text-slate-500 mt-1">
+                                                        Critical and urgent announcements are highlighted with colored borders
+                                                    </p>
+                                                </div>
+
+                                                {/* Expiration Date */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Expires On (Optional)</label>
+                                                    <input
+                                                        type="date"
+                                                        value={newAnnouncement.expiresAt}
+                                                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, expiresAt: e.target.value })}
+                                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
+                                                    />
+                                                    <p className="text-xs text-slate-500 mt-1">
+                                                        Leave empty for permanent announcement. Expired posts are auto-deleted.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-2 mt-6">
+                                                <button
+                                                    onClick={handlePostAnnouncement}
+                                                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors touch-manipulation"
+                                                >
+                                                    <Save size={18} />
+                                                    Post Announcement
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowAnnouncementForm(false)}
+                                                    className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors"
+                                                >
+                                                    Cancel
+                                                </button>
+
+
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Monthly Bills Section */}
                                 <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
