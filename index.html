@@ -234,6 +234,42 @@
                 role: 'resident',
                 apartmentNumber: ''
             });
+            // ===== AUTO-CLEANUP EXPIRED ANNOUNCEMENTS =====
+            // This function runs once when user logs in
+            // It checks all announcements and deletes ones past their expiration date
+            const cleanupExpiredAnnouncements = async () => {
+                try {
+                    // Reference to announcements in Firebase
+                    const announcementsRef = database.ref('buildingData/announcements');
+
+                    // Get all current announcements from database
+                    const snapshot = await announcementsRef.once('value');
+                    const announcements = snapshot.val() || {}; // If no announcements exist, use empty object
+
+                    // Get current date/time to compare with expiration dates
+                    const now = new Date();
+                    let deletedCount = 0; // Counter to track how many we delete
+
+                    // Loop through each announcement
+                    for (const [pushKey, ann] of Object.entries(announcements)) {
+                        // Check if announcement has an expiration date AND if it's in the past
+                        if (ann.expiresAt && new Date(ann.expiresAt) < now) {
+                            // Delete this expired announcement from Firebase
+                            await announcementsRef.child(pushKey).remove();
+                            deletedCount++; // Increment counter
+                        }
+                    }
+
+                    // Log to console if we deleted any (helpful for debugging)
+                    if (deletedCount > 0) {
+                        console.log(`🗑️ Auto-cleanup: Removed ${deletedCount} expired announcement(s)`);
+                    }
+                } catch (error) {
+                    // If something goes wrong, log error but don't crash the app
+                    console.error('❌ Cleanup error:', error);
+                }
+            };
+            // ===== END AUTO-CLEANUP FUNCTION =====
 
             // ===== HELPER FUNCTIONS =====
 
@@ -396,6 +432,9 @@
                         const dataRef = database.ref('buildingData');
                         // Check for auto-backups (weekly/monthly)
                         checkAndCreateAutoBackups();
+                        // ===== NEW: Auto-cleanup expired announcements on login =====
+                        cleanupExpiredAnnouncements();
+
 
                         const unsubscribeData = dataRef.on('value', (snapshot) => {
                             const firebaseData = snapshot.val();
