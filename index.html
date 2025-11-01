@@ -307,31 +307,60 @@
             };
 
             // Check if user can see apartment's payment status
-            const canSeePaymentStatus = (apartmentNum) => {
-                const tier = data.buildingSettings?.privacyTier || 'tier1';
+            // Check if user can see apartment's payment status
+            const canSeePaymentStatus = (targetApartmentNum, viewerApartmentNum = null) => {
+                console.log(`🔍 canSee check: target=${targetApartmentNum}, viewerApt=${viewerApartmentNum}, role=${userRole}, tier=${data.buildingSettings?.privacyTier}`); // Debug log
 
                 // Admin and Manager always see everything
                 if (userRole === 'admin' || userRole === 'manager') {
+                    console.log('👑 Admin/Manager: Full view granted');
                     return true;
                 }
 
-                // Tier 1: Everyone sees everything
-                if (tier === 'tier1') {
-                    return true;
-                }
-
-                // Tier 3: Residents see nothing (only their own, handled separately)
-                if (tier === 'tier3') {
+                // Safeguard for residents: If viewerApt null, deny all views (show setup banner)
+                const viewerApt = viewerApartmentNum || residentApartmentNum;
+                if (userRole === 'resident' && !viewerApt) {
+                    console.warn('🚫 Resident viewerApt null: No views allowed—setup issue');
                     return false;
                 }
 
-                // Tier 2: Check if apartment opted out
-                if (tier === 'tier2') {
-                    const optOut = data.buildingSettings?.privacyOptOuts?.[apartmentNum];
-                    return !optOut; // If opted out, return false
+                // For residents: always allow viewing own apartment (regardless of opt-out/tier)
+                if (targetApartmentNum === viewerApt) {
+                    console.log('👤 Own apt: Always visible');
+                    return true;
                 }
 
-                return true;
+                const tier = data.buildingSettings?.privacyTier || 'tier1';
+
+                // Tier 1: Everyone sees everything
+                if (tier === 'tier1') {
+                    console.log('🌐 Tier 1: Full transparency');
+                    return true;
+                }
+
+                // Tier 3: Residents see only their own (others: false)
+                if (tier === 'tier3') {
+                    console.log('🔒 Tier 3: Others private');
+                    return false;
+                }
+
+                // Tier 2: Symmetric opt-out logic
+                if (tier === 'tier2') {
+                    const viewerOptOut = data.buildingSettings?.privacyOptOuts?.[viewerApt] || false;
+                    console.log(`⚖️ Tier 2: viewerOptOut=${viewerOptOut}`);
+                    if (viewerOptOut) {
+                        // Viewer opted out: Can't see others (own already handled above)
+                        console.log('🙈 Opted out viewer: Others private');
+                        return false;
+                    } else {
+                        // Viewer didn't opt out: See non-opted-out apartments
+                        const targetOptOut = data.buildingSettings?.privacyOptOuts?.[targetApartmentNum] || false;
+                        console.log(`👀 Non-opted viewer: targetOptOut=${targetOptOut} → visible=${!targetOptOut}`);
+                        return !targetOptOut;
+                    }
+                }
+
+                return true; // Fallback
             };
 
             // ===== END HELPER FUNCTIONS =====
@@ -787,10 +816,23 @@
                         // Load apartment number for residents
                         if (role === 'resident') {
                             const aptNumSnapshot = await database.ref(`users/${user.uid}/apartmentNumber`).once('value');
-                            const aptNum = aptNumSnapshot.val();
-                            if (aptNum) {
-                                setResidentApartmentNum(aptNum);
+                            let aptNum = aptNumSnapshot.val();
+                            if (!aptNum) {
+                                // Safeguard: If missing, fetch from any monthly bill or prompt manager later
+                                console.warn('⚠️ Resident aptNum missing—fetching from data');
+                                const firstMonth = Object.keys(data.monthlyBills || {})[0];
+                                if (firstMonth) {
+                                    const aptData = data.monthlyBills[firstMonth].apartments;
+                                    // Fallback: Assume first non-empty apt, but better: require manager set
+                                    aptNum = Object.keys(aptData || {})[0]; // Temp—log for now
+                                    console.log('Fallback aptNum:', aptNum);
+                                } else {
+                                    aptNum = 1; // Absolute fallback—prompt setup
+                                }
+                                // TODO: Manager should set this via createUser
                             }
+                            setResidentApartmentNum(aptNum);
+                            console.log('✅ Resident aptNum set:', aptNum); // Debug log
                         }
 
                         // ===== STORE ADMIN CREDENTIALS - Needed for session restoration =====
@@ -1536,6 +1578,9 @@
                 });
             }, [currentMonthKey]);
 
+            const viewerApt = userRole === 'resident' ? residentApartmentNum : null;
+            console.log('🎯 Global viewerApt for grids:', viewerApt); // Debug log—runs on render
+
             // Add this BEFORE the existing return statement
             if (isLoading) {
                 return (
@@ -1759,6 +1804,11 @@
                                                     </button>
                                                 )}
                                             </div>
+                                        </div>
+                                    )}
+                                    {userRole === 'resident' && !residentApartmentNum && (
+                                        <div className="bg-yellow-100 border border-yellow-300 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-center">
+                                            ⚠️ Setup Needed: Your apartment number isn't linked. Contact manager to assign it—you won't see statuses until fixed.
                                         </div>
                                     )}
 
@@ -2791,7 +2841,7 @@
 
                                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
                                         {currentMonthData.apartments && Object.entries(currentMonthData.apartments).map(([num, apt]) => {
-                                            const canSee = canSeePaymentStatus(num);
+                                            const canSee = canSeePaymentStatus(parseInt(num), viewerApt);  // Note: parseInt(num) since num is string key
                                             const isPaid = apt.paid;
 
                                             return (
@@ -2928,7 +2978,7 @@
 
                                             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
                                                 {project.apartments && Object.entries(project.apartments).map(([num, apt]) => {
-                                                    const canSee = canSeePaymentStatus(num);
+                                                    const canSee = canSeePaymentStatus(parseInt(num), viewerApt);  // Same: parseInt for int comparison
                                                     const isPaid = apt.paid;
 
                                                     return (
