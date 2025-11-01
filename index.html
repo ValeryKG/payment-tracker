@@ -1025,52 +1025,72 @@
                 setShowManagerSettings(false);
                 alert(t.managerAssigned);
             };
-
-            // ===== HANDLE POST ANNOUNCEMENT =====
+            // ===== HANDLE POST ANNOUNCEMENT (with posting limits) =====
             const handlePostAnnouncement = async () => {
+                // STEP 1: Validate form fields
+                // Check if both English title and message are filled
                 if (!newAnnouncement.titleEn || !newAnnouncement.messageEn) {
                     alert('Please fill at least the English title and message.');
                     return;
                 }
 
-                // NEW: Check active announcement count
+                // STEP 2: Check announcement posting limits (prevent spam)
                 try {
+                    // Get reference to announcements in Firebase
                     const announcementsRef = database.ref('buildingData/announcements');
-                    const snapshot = await announcementsRef.once('value');
-                    const currentAnnouncements = snapshot.val() || {};
 
+                    // Fetch all current announcements from database
+                    const snapshot = await announcementsRef.once('value');
+                    const currentAnnouncements = snapshot.val() || {}; // Empty object if no announcements exist
+
+                    // Get current date/time for comparison
                     const now = new Date();
+
+                    // Count how many announcements are still "active" (not expired)
                     const activeCount = Object.values(currentAnnouncements).filter(ann =>
-                        !ann.expiresAt || new Date(ann.expiresAt) > now
+                        !ann.expiresAt || new Date(ann.expiresAt) > now  // No expiration OR expiration is in future
                     ).length;
 
-                    const MAX_ACTIVE = userRole === 'admin' ? 999 : 5; // Admin unlimited, manager max 5
+                    // Set limits based on user role
+                    const MAX_ACTIVE = userRole === 'admin' ? 999 : 5;  // Admin = unlimited (999), Manager = 5
 
+                    // Check if limit exceeded
                     if (activeCount >= MAX_ACTIVE) {
-                        alert(`⚠️ Maximum active announcements reached (${MAX_ACTIVE}). Please delete old announcements first or set expiration dates.`);
-                        return;
+                        alert(`⚠️ Maximum active announcements reached (${MAX_ACTIVE}).\n\nPlease:\n- Delete old announcements, OR\n- Set expiration dates on new announcements`);
+                        return; // Stop here, don't post
                     }
+
+                    // Log current count (helpful for debugging)
+                    console.log(`📊 Active announcements: ${activeCount}/${MAX_ACTIVE}`);
+
                 } catch (error) {
-                    console.error('Error checking announcement count:', error);
+                    console.error('❌ Error checking announcement count:', error);
+                    // Continue anyway - don't block posting due to check failure
                 }
 
-                // Rest of your existing code...
+                // STEP 3: Create announcement data object
                 const announcementData = {
                     titleEn: newAnnouncement.titleEn,
-                    titleHe: newAnnouncement.titleHe || newAnnouncement.titleEn,
+                    titleHe: newAnnouncement.titleHe || newAnnouncement.titleEn,  // Use English if Hebrew missing
                     messageEn: newAnnouncement.messageEn,
-                    messageHe: newAnnouncement.messageHe || newAnnouncement.messageEn,
+                    messageHe: newAnnouncement.messageHe || newAnnouncement.messageEn,  // Use English if Hebrew missing
                     priority: newAnnouncement.priority,
-                    expiresAt: newAnnouncement.expiresAt || null,
-                    id: `announcement-${Date.now()}`,
-                    postedBy: auth.currentUser?.email || 'Unknown',
-                    postedByRole: userRole,
-                    createdAt: new Date().toISOString()
+                    expiresAt: newAnnouncement.expiresAt || null,  // Null = never expires
+                    id: `announcement-${Date.now()}`,  // Unique ID (timestamp-based)
+                    postedBy: auth.currentUser?.email || 'Unknown',  // Who posted this
+                    postedByRole: userRole,  // Their role (admin/manager)
+                    createdAt: new Date().toISOString()  // When it was posted
                 };
 
+                // STEP 4: Save to Firebase
                 try {
+                    // Use .push() to add announcement with auto-generated Firebase key
                     await database.ref('buildingData/announcements').push(announcementData);
+
+                    // Success feedback
                     alert('✅ Announcement posted successfully!');
+
+                    // Reset form fields to empty
                     setNewAnnouncement({
                         titleEn: '',
                         titleHe: '',
@@ -1079,12 +1099,18 @@
                         priority: 'normal',
                         expiresAt: ''
                     });
+
+                    // Close the form modal
                     setShowAnnouncementForm(false);
+
                 } catch (error) {
-                    console.error('Error posting announcement:', error);
+                    // Error handling
+                    console.error('❌ Error posting announcement:', error);
                     alert('❌ Error: ' + error.message);
                 }
             };
+            // ===== END POST ANNOUNCEMENT FUNCTION =====
+
             // ===== DELETE ANNOUNCEMENT (Admin/Manager only) - NEW =====
             const handleDeleteAnnouncement = async (pushKey) => {
                 if (userRole !== 'admin' && userRole !== 'manager') {
