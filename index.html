@@ -881,7 +881,6 @@
                             apartments: Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }]))
                         };
 
-                        // Ensure apartments object exists and has all entries
                         const existingApts = monthData.apartments || {};
                         const newApartments = {
                             ...Object.fromEntries([...Array(getApartmentCount())].map((_, i) => [i + 1, { paid: false }])),
@@ -891,13 +890,28 @@
                         const currentApt = newApartments[apartmentNum] || { paid: false };
                         const newStatus = !currentApt.paid;
 
+                        // ===== CORRECTED FIX: PRESERVE ORIGINAL PAYMENT AMOUNT =====
+                        // Key insight: Once an apartment pays ANY amount in a month, that amount is "locked"
+                        // Even if toggled off/on multiple times, it keeps the FIRST payment amount
+
+                        let paymentAmount;
+                        if (newStatus) {
+                            // Marking as PAID
+                            // Priority: 1) Use existing amount if exists, 2) Use current month amount
+                            paymentAmount = currentApt.amount || monthData.amount || monthlySettings.amount || 150;
+                        } else {
+                            // Marking as UNPAID
+                            // Keep the amount stored (don't set to null) so we remember it for re-toggle
+                            paymentAmount = currentApt.amount || null;
+                        }
+                        // ===== END CORRECTED FIX =====
+
                         newApartments[apartmentNum] = {
                             paid: newStatus,
                             date: newStatus ? new Date().toISOString().split('T')[0] : null,
-                            amount: monthData.amount || monthlySettings.amount || 150
+                            amount: paymentAmount  // ← Now preserves across toggles
                         };
 
-                        // Write whole month object back (preserve amount, dueDay)
                         monthRef.set({
                             amount: monthData.amount || monthlySettings.amount || 150,
                             dueDay: monthData.dueDay || monthlySettings.dueDay || 5,
