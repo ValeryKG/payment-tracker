@@ -523,7 +523,37 @@
                     tier3Desc: 'Only manager and admin can see payment statuses. Residents see only their own status.',
                     tier3Example: 'Example: Residents see "Your Status: PAID ✓" only',
                     currentSetting: 'Current Setting',
-                    privateStatus: 'Private'
+                    privateStatus: 'Private',
+                    postAnnouncement: 'Post Announcement',
+                    announcements: 'Announcements',
+                    titleEnglish: 'Title (English)',
+                    titleHebrew: 'Title (Hebrew)',
+                    messageEnglish: 'Message (English)',
+                    messageHebrew: 'Message (Hebrew)',
+                    priorityLevel: 'Priority Level',
+                    priorityNormal: '🟢 Normal',
+                    priorityUrgent: '🟠 Urgent',
+                    priorityCritical: '🔴 Critical',
+                    expiresOn: 'Expires On (Optional)',
+                    postedBy: 'Posted by',
+                    expires: 'Expires',
+                    deleteAnnouncement: 'Delete Announcement',
+                    noActiveAnnouncements: 'No active announcements.',
+                    downloadBackup: 'Download Backup',
+                    supportTools: 'Support Tools',
+                    manageUsers: 'Manage Users',
+                    manageUsersTitle: 'Manage Users - Password Reset',
+                    resetPassword: 'Reset Password',
+                    residentSettings: 'Resident Settings',
+                    hideMyStatus: 'Hide My Payment Status',
+                    hideStatusDesc: 'When ON, other residents see "🔒 Private" instead of your payment status.',
+                    hideStatusNote: 'Note: Manager and admin always see your status.',
+                    currentStatus: 'Current Status',
+                    hiddenFromOthers: '🔒 Hidden from others',
+                    visibleToAll: '👁️ Visible to all residents',
+                    postedByOn: 'By {role} on {date}',
+                    expiresDate: 'Expires: {date}',
+                    announcementsTitle: '📢 Announcements',
                 },
                 he: {
                     title: 'מעקב תשלומים בבניין',
@@ -595,7 +625,37 @@
                     tier3Desc: 'רק מנהל ואדמין יכולים לראות סטטוסי תשלומים. דיירים רואים רק את הסטטוס שלהם.',
                     tier3Example: 'דוגמה: דיירים רואים "הסטטוס שלך: שולם ✓" בלבד',
                     currentSetting: 'הגדרה נוכחית',
-                    privateStatus: 'פרטי'
+                    privateStatus: 'פרטי',
+                    postAnnouncement: 'פרסום הודעה',
+                    announcements: 'הודעות',
+                    titleEnglish: 'כותרת (אנגלית)',
+                    titleHebrew: 'כותרת (עברית)',
+                    messageEnglish: 'הודעה (אנגלית)',
+                    messageHebrew: 'הודעה (עברית)',
+                    priorityLevel: 'רמת עדיפות',
+                    priorityNormal: '🟢 רגיל',
+                    priorityUrgent: '🟠 דחוף',
+                    priorityCritical: '🔴 קריטי',
+                    expiresOn: 'תוקף עד (אופציונלי)',
+                    postedBy: 'פורסם על ידי',
+                    expires: 'תוקף עד',
+                    deleteAnnouncement: 'מחיקת הודעה',
+                    noActiveAnnouncements: 'אין הודעות פעילות.',
+                    downloadBackup: 'גיבוי מלא',
+                    supportTools: 'כלי תמיכה',
+                    manageUsers: 'ניהול משתמשים',
+                    manageUsersTitle: 'ניהול משתמשים - איפוס סיסמה',
+                    resetPassword: 'איפוס סיסמה',
+                    residentSettings: 'הגדרות דייר',
+                    hideMyStatus: 'הסתר את סטטוס התשלום שלי',
+                    hideStatusDesc: 'כאשר מופעל, דיירים אחרים רואים "🔒 פרטי" במקום סטטוס התשלום שלך.',
+                    hideStatusNote: 'שים לב: מנהל ואדמין תמיד רואים את הסטטוס שלך.',
+                    currentStatus: 'סטטוס נוכחי',
+                    hiddenFromOthers: '🔒 מוסתר מאחרים',
+                    visibleToAll: '👁️ גלוי לכל הדיירים',
+                    postedByOn: 'פורסם על ידי {role} ב-{date}',
+                    expiresDate: 'תוקף עד: {date}',
+                    announcementsTitle: '📢 הודעות',
                 }
             };
 
@@ -929,12 +989,33 @@
 
             // ===== HANDLE POST ANNOUNCEMENT =====
             const handlePostAnnouncement = async () => {
-                // Fix: Require BOTH title AND message (alert if either is missing)
                 if (!newAnnouncement.titleEn || !newAnnouncement.messageEn) {
                     alert('Please fill at least the English title and message.');
                     return;
                 }
 
+                // NEW: Check active announcement count
+                try {
+                    const announcementsRef = database.ref('buildingData/announcements');
+                    const snapshot = await announcementsRef.once('value');
+                    const currentAnnouncements = snapshot.val() || {};
+
+                    const now = new Date();
+                    const activeCount = Object.values(currentAnnouncements).filter(ann =>
+                        !ann.expiresAt || new Date(ann.expiresAt) > now
+                    ).length;
+
+                    const MAX_ACTIVE = userRole === 'admin' ? 999 : 5; // Admin unlimited, manager max 5
+
+                    if (activeCount >= MAX_ACTIVE) {
+                        alert(`⚠️ Maximum active announcements reached (${MAX_ACTIVE}). Please delete old announcements first or set expiration dates.`);
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error checking announcement count:', error);
+                }
+
+                // Rest of your existing code...
                 const announcementData = {
                     titleEn: newAnnouncement.titleEn,
                     titleHe: newAnnouncement.titleHe || newAnnouncement.titleEn,
@@ -942,16 +1023,14 @@
                     messageHe: newAnnouncement.messageHe || newAnnouncement.messageEn,
                     priority: newAnnouncement.priority,
                     expiresAt: newAnnouncement.expiresAt || null,
-                    // Add these extra fields from your inline handler
-                    id: `announcement-${Date.now()}`,  // Custom ID (optional; Firebase push ID is better for uniqueness)
+                    id: `announcement-${Date.now()}`,
                     postedBy: auth.currentUser?.email || 'Unknown',
                     postedByRole: userRole,
                     createdAt: new Date().toISOString()
                 };
 
                 try {
-                    // Use .push() to append as object (correct for RTDB lists)
-                    await firebase.database().ref('buildingData/announcements').push(announcementData);
+                    await database.ref('buildingData/announcements').push(announcementData);
                     alert('✅ Announcement posted successfully!');
                     setNewAnnouncement({
                         titleEn: '',
@@ -1424,7 +1503,7 @@
                                         type="text"
                                         value={loginEmail}
                                         onChange={(e) => setLoginEmail(e.target.value)}
-                                        placeholder="Username or Email (e.g., apt1)"
+                                        placeholder={t.username + " or Email (e.g., apt1)"}
                                         className="w-full px-4 py-3 border border-slate-300 rounded-lg mb-4 text-base"
                                     />
                                     <input
@@ -1475,7 +1554,7 @@
                                                                     className="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 transition-colors"
                                                                 >
                                                                     <Settings size={16} />
-                                                                    Settings
+                                                                    {t.residentSettings}
                                                                 </button>
                                                             )}
                                                         </>
@@ -1568,7 +1647,7 @@
                                                         className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
                                                     >
                                                         <Settings size={18} />
-                                                        🔧 Support Tools
+                                                        🔧 {t.supportTools}
                                                     </button>
                                                 )}
 
@@ -1592,7 +1671,7 @@
                                                         className="px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
                                                     >
                                                         <User size={18} />
-                                                        👥 Manage Users
+                                                        👥 {t.manageUsers}
                                                     </button>
                                                 )}
 
@@ -1647,7 +1726,7 @@
                                                 type="text"
                                                 value={loginEmail}
                                                 onChange={(e) => setLoginEmail(e.target.value)}
-                                                placeholder="Username or Email (e.g., apt1)"
+                                                placeholder={t.username + " or Email (e.g., apt1)"}
                                                 className="w-full px-4 py-3 border border-slate-300 rounded-lg mb-4 text-base"
                                             />
                                             <input
@@ -1906,7 +1985,7 @@
 
                                             <div className="space-y-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.username}</label>
                                                     <input
                                                         type="text"
                                                         value={newUserData.username}
@@ -1920,7 +1999,7 @@
                                                 </div>
 
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.password}</label>
                                                     <input
                                                         type="text"
                                                         value={newUserData.password}
@@ -1931,7 +2010,7 @@
                                                     <p className="text-xs text-slate-500 mt-1">Minimum 6 characters</p>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Apartment Number</label>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.apartmentNumber}</label>
                                                     <select
                                                         value={newUserData.apartmentNumber || ''}
                                                         onChange={(e) => setNewUserData({ ...newUserData, apartmentNumber: e.target.value })}
@@ -1950,7 +2029,7 @@
                                                 </div>
 
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.role}</label>
                                                     <select
                                                         value={newUserData.role}
                                                         onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
@@ -2161,7 +2240,7 @@
                                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
                                         <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-3xl my-8 max-h-[90vh] overflow-y-auto">
                                             <div className="flex justify-between items-center mb-4">
-                                                <h3 className="text-lg sm:text-xl font-bold">👥 Manage Users - Password Reset</h3>
+                                                <h3 className="text-lg sm:text-xl font-bold">👥 {t.manageUsersTitle}</h3>
                                                 <button onClick={() => {
                                                     setShowPasswordReset(false);
                                                     setResetPasswordData({ uid: '', username: '', email: '', newPassword: '' });
@@ -2216,7 +2295,7 @@
                                                                     }}
                                                                     className="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded text-sm font-medium whitespace-nowrap"
                                                                 >
-                                                                    🔑 Reset Password
+                                                                    🔒 {t.resetPassword}
                                                                 </button>
                                                             )}
                                                         </div>
@@ -2365,7 +2444,7 @@
                                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                                         <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
                                             <div className="flex justify-between items-center mb-4">
-                                                <h3 className="text-lg sm:text-xl font-bold">⚙️ Resident Settings</h3>
+                                                <h3 className="text-lg sm:text-xl font-bold">⚙️ {t.residentSettings}</h3>
                                                 <button onClick={() => setShowResidentPanel(false)} className="p-2 hover:bg-slate-100 rounded-lg">
                                                     <XCircle size={24} />
                                                 </button>
@@ -2382,12 +2461,12 @@
                                                     <div className="space-y-4">
                                                         <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-300">
                                                             <div className="flex-1">
-                                                                <h4 className="font-semibold text-slate-800 mb-1">Hide My Payment Status</h4>
+                                                                <h4 className="font-semibold text-slate-800 mb-1">{t.hideMyStatus}</h4>
                                                                 <p className="text-sm text-slate-600">
-                                                                    When ON, other residents see "🔒 Private" instead of your payment status.
+                                                                    {t.hideStatusDesc}
                                                                 </p>
                                                                 <p className="text-xs text-slate-500 mt-1">
-                                                                    Note: Manager and admin always see your status.
+                                                                    {t.hideStatusNote}
                                                                 </p>
                                                             </div>
                                                             <button
@@ -2458,7 +2537,7 @@
                                             <div className="space-y-4">
                                                 {/* Title English */}
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Title (English)</label>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.titleEnglish}</label>
                                                     <input
                                                         type="text"
                                                         value={newAnnouncement.titleEn}
@@ -2470,7 +2549,7 @@
 
                                                 {/* Title Hebrew */}
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Title (Hebrew)</label>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.titleHebrew}</label>
                                                     <input
                                                         type="text"
                                                         value={newAnnouncement.titleHe}
@@ -2483,7 +2562,7 @@
 
                                                 {/* Message English */}
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Message (English)</label>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.messageEnglish}</label>
                                                     <textarea
                                                         value={newAnnouncement.messageEn}
                                                         onChange={(e) => setNewAnnouncement({ ...newAnnouncement, messageEn: e.target.value })}
@@ -2495,7 +2574,7 @@
 
                                                 {/* Message Hebrew */}
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Message (Hebrew)</label>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.messageHebrew}</label>
                                                     <textarea
                                                         value={newAnnouncement.messageHe}
                                                         onChange={(e) => setNewAnnouncement({ ...newAnnouncement, messageHe: e.target.value })}
@@ -2508,15 +2587,15 @@
 
                                                 {/* Priority */}
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Priority Level</label>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.priorityLevel}</label>
                                                     <select
                                                         value={newAnnouncement.priority}
                                                         onChange={(e) => setNewAnnouncement({ ...newAnnouncement, priority: e.target.value })}
                                                         className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                                     >
-                                                        <option value="normal">🟢 Normal</option>
-                                                        <option value="urgent">🟠 Urgent</option>
-                                                        <option value="critical">🔴 Critical</option>
+                                                        <option value="normal">{t.priorityNormal}</option>
+                                                        <option value="urgent">{t.priorityUrgent}</option>
+                                                        <option value="critical">{t.priorityCritical}</option>
                                                     </select>
                                                     <p className="text-xs text-slate-500 mt-1">
                                                         Critical and urgent announcements are highlighted with colored borders
@@ -2525,7 +2604,7 @@
 
                                                 {/* Expiration Date */}
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Expires On (Optional)</label>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">{t.expiresOn}</label>
                                                     <input
                                                         type="date"
                                                         value={newAnnouncement.expiresAt}
@@ -2566,7 +2645,7 @@
                                     <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">
                                         <div className="flex justify-between items-center mb-4">
                                             <div className="flex justify-between items-center mb-4">
-                                                <h2 className="text-xl sm:text-2xl font-bold text-slate-800">📢 Announcements</h2>
+                                                <h2 className="text-xl sm:text-2xl font-bold text-slate-800">{t.announcementsTitle}</h2>
                                             </div>
                                         </div>
                                         <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
