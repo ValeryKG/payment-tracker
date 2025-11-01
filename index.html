@@ -234,6 +234,7 @@
                 role: 'resident',
                 apartmentNumber: ''
             });
+            const [occupiedApts, setOccupiedApts] = useState([]);
             // ===== AUTO-CLEANUP EXPIRED ANNOUNCEMENTS =====
             // This function runs once when user logs in
             // It checks all announcements and deletes ones past their expiration date
@@ -1180,6 +1181,19 @@
                     alert('Please select apartment number for resident');
                     return;
                 }
+                // NEW: Check for unique apartment number (residents only)
+                if (newUserData.role === 'resident') {
+                    const usersSnapshot = await database.ref('users').once('value');
+                    const existingUsers = usersSnapshot.val() || {};
+                    const aptTakenBy = Object.values(existingUsers).find(user =>
+                        user.role === 'resident' && user.apartmentNumber?.toString() === newUserData.apartmentNumber?.toString()
+                    );
+                    if (aptTakenBy) {
+                        console.log('🚫 Duplicate apt blocked:', aptTakenBy.username, 'has', newUserData.apartmentNumber);  // Debug
+                        alert(`❌ Apartment ${newUserData.apartmentNumber} is already assigned to "${aptTakenBy.username}". Choose another.`);
+                        return;
+                    }
+                }
 
                 const generatedEmail = `${newUserData.username}@building.local`;
 
@@ -1722,7 +1736,22 @@
 
                                                 {(userRole === 'admin' || userRole === 'manager') && (
                                                     <button
-                                                        onClick={() => setShowCreateUser(true)}
+                                                        onClick={async () => {
+                                                            try {
+                                                                const usersSnapshot = await database.ref('users').once('value');
+                                                                const usersData = usersSnapshot.val() || {};
+                                                                const occupied = Object.values(usersData)
+                                                                    .filter(u => u.role === 'resident' && u.apartmentNumber)
+                                                                    .map(u => u.apartmentNumber)
+                                                                    .sort((a, b) => a - b);
+                                                                setOccupiedApts(occupied);
+                                                                console.log('🔍 Occupied apts loaded:', occupied);  // Debug: Check console on open
+                                                            } catch (err) {
+                                                                console.error('Fetch occupied error:', err);
+                                                                setOccupiedApts([]);  // Fallback
+                                                            }
+                                                            setShowCreateUser(true);
+                                                        }}
                                                         className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
                                                     >
                                                         <User size={18} />
@@ -2126,18 +2155,27 @@
                                                 </div>
                                                 <div>
                                                     <label className="block text-sm font-medium text-slate-700 mb-1">{t.apartmentNumber}</label>
+
                                                     <select
                                                         value={newUserData.apartmentNumber || ''}
                                                         onChange={(e) => setNewUserData({ ...newUserData, apartmentNumber: e.target.value })}
                                                         className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base"
                                                     >
                                                         <option value="">Select Apartment</option>
-                                                        {[...Array(getApartmentCount())].map((_, i) => (
-                                                            <option key={i + 1} value={i + 1}>
-                                                                Apartment {i + 1}
-                                                            </option>
-                                                        ))}
+                                                        {[...Array(getApartmentCount())].map((_, i) => {
+                                                            const aptNum = i + 1;
+                                                            if (occupiedApts.includes(aptNum.toString())) return null;  // Hide taken
+                                                            return (
+                                                                <option key={aptNum} value={aptNum}>
+                                                                    Apartment {aptNum}
+                                                                </option>
+                                                            );
+                                                        })}
                                                     </select>
+                                                    {occupiedApts.length === getApartmentCount() && (
+                                                        <p className="text-xs text-red-600 mt-1">All apartments assigned—contact admin.</p>
+                                                    )}
+
                                                     <p className="text-xs text-slate-500 mt-1">
                                                         Required for residents. Links user to their apartment.
                                                     </p>
