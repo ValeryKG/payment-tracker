@@ -170,12 +170,6 @@
             const [password, setPassword] = useState('');
             const [loginEmail, setLoginEmail] = useState('');
 
-            // ===== ADMIN CREDENTIALS - Store for session restoration after creating users =====
-            const [adminCredentials, setAdminCredentials] = useState({
-                email: '',
-                password: ''
-            });
-
             const [language, setLanguage] = useState('en');
             const [showAdminPanel, setShowAdminPanel] = useState(false);
             const [showProjectForm, setShowProjectForm] = useState(false);
@@ -460,8 +454,11 @@
                     if (user) {
                         // User is logged in, load data
                         const dataRef = database.ref('buildingData');
-                        // Check for auto-backups (weekly/monthly)
-                        checkAndCreateAutoBackups();
+
+                        // Check for auto-backups (weekly/monthly) - Admin only
+                        if (userRole === 'admin') {
+                            checkAndCreateAutoBackups();
+                        }
                         // ===== NEW: Auto-cleanup expired announcements on login =====
                         cleanupExpiredAnnouncements();
 
@@ -625,6 +622,19 @@
                     postedByOn: 'By {role} on {date}',
                     expiresDate: 'Expires: {date}',
                     announcementsTitle: '📢 Announcements',
+                    errorTotalPositive: 'Total amount must be positive',
+                    errorDueDatePast: 'Due date cannot be in the past',
+                    errorPasswordLength: 'Password must be at least 6 characters',
+                    errorFillAllFields: 'Please fill all required fields',
+                    errorApartmentTaken: 'Apartment already assigned to another user',
+                    errorUsernameRequired: 'Please fill username and password',
+                    errorApartmentRequired: 'Please select apartment number for resident',
+                    successUserCreated: 'User created successfully!',
+                    successPasswordReset: 'Password reset successfully!',
+                    successAnnouncementPosted: 'Announcement posted successfully!',
+                    errorMaxAnnouncements: 'Maximum active announcements reached',
+                    errorUsernameTaken: 'This username is already taken',
+                    errorMaxAnnouncementsSolution: 'Please delete old announcements or set expiration dates',
                 },
                 he: {
                     title: 'מעקב תשלומים בבניין',
@@ -727,6 +737,19 @@
                     postedByOn: 'פורסם על ידי {role} ב-{date}',
                     expiresDate: 'תוקף עד: {date}',
                     announcementsTitle: '📢 הודעות',
+                    errorTotalPositive: 'הסכום חייב להיות חיובי',
+                    errorDueDatePast: 'תאריך יעד לא יכול להיות בעבר',
+                    errorPasswordLength: 'הסיסמה חייבת להיות לפחות 6 תווים',
+                    errorFillAllFields: 'אנא מלא את כל השדות הנדרשים',
+                    errorApartmentTaken: 'דירה זו כבר משוייכת למשתמש אחר',
+                    errorUsernameRequired: 'אנא מלא שם משתמש וסיסמה',
+                    errorApartmentRequired: 'אנא בחר מספר דירה לדייר',
+                    successUserCreated: 'משתמש נוצר בהצלחה!',
+                    successPasswordReset: 'הסיסמה אופסה בהצלחה!',
+                    successAnnouncementPosted: 'ההודעה פורסמה בהצלחה!',
+                    errorMaxAnnouncements: 'הגעת למספר המקסימלי של הודעות פעילות',
+                    errorUsernameTaken: 'שם משתמש זה תפוס',
+                    errorMaxAnnouncementsSolution: 'אנא מחק הודעות ישנות או הגדר תאריכי תפוגה',
                 }
             };
 
@@ -838,13 +861,6 @@
                             console.log('✅ Resident aptNum set:', aptNum); // Debug log
                         }
 
-                        // ===== STORE ADMIN CREDENTIALS - Needed for session restoration =====
-                        if (role === 'admin') {
-                            setAdminCredentials({
-                                email: emailToUse,
-                                password: password
-                            });
-                        }
 
                         setShowLogin(false);
                         setPassword('');
@@ -910,7 +926,7 @@
 
                         newApartments[apartmentNum] = {
                             paid: newStatus,
-                            date: newStatus ? new Date().toISOString().split('T')[0] : null,
+                            date: newStatus ? new Date().toISOString() : null,
                             amount: paymentAmount  // ← Now preserves across toggles
                         };
 
@@ -941,7 +957,7 @@
 
                             newApts[apartmentNum] = {
                                 paid: newStatus,
-                                date: newStatus ? new Date().toISOString().split('T')[0] : null,
+                                date: newStatus ? new Date().toISOString() : null,
                                 amount: project.perApartment
                             };
 
@@ -963,6 +979,16 @@
             const handleCreateProject = async () => {  // NEW: async for await
                 if (!newProject.name || !newProject.total || !newProject.dueDate) {
                     alert(t.fillAllFields);
+                    return;
+                }
+                if (parseFloat(newProject.total) <= 0) {
+                    alert(t.errorTotalPositive);
+                    return;
+                }
+
+                const today = new Date().toISOString().split('T')[0];
+                if (newProject.dueDate < today) {
+                    alert(t.errorDueDatePast);
                     return;
                 }
 
@@ -1115,7 +1141,7 @@
 
                     // Check if limit exceeded
                     if (activeCount >= MAX_ACTIVE) {
-                        alert(`⚠️ Maximum active announcements reached (${MAX_ACTIVE}).\n\nPlease:\n- Delete old announcements, OR\n- Set expiration dates on new announcements`);
+                        alert(`⚠️ ${t.errorMaxAnnouncements} (${MAX_ACTIVE}).\n\n${t.errorMaxAnnouncementsSolution}`);
                         return; // Stop here, don't post
                     }
 
@@ -1135,7 +1161,6 @@
                     messageHe: newAnnouncement.messageHe || newAnnouncement.messageEn,  // Use English if Hebrew missing
                     priority: newAnnouncement.priority,
                     expiresAt: newAnnouncement.expiresAt || null,  // Null = never expires
-                    id: `announcement-${Date.now()}`,  // Unique ID (timestamp-based)
                     postedBy: auth.currentUser?.email || 'Unknown',  // Who posted this
                     postedByRole: userRole,  // Their role (admin/manager)
                     createdAt: new Date().toISOString()  // When it was posted
@@ -1147,7 +1172,7 @@
                     await database.ref('buildingData/announcements').push(announcementData);
 
                     // Success feedback
-                    alert('✅ Announcement posted successfully!');
+                    alert(t.successAnnouncementPosted);
 
                     // Reset form fields to empty
                     setNewAnnouncement({
@@ -1190,11 +1215,11 @@
             // ===== CREATE USER FUNCTION - Allows admin to create new users with roles =====
             const handleCreateUser = async () => {
                 if (!newUserData.username || !newUserData.password) {
-                    alert('Please fill username and password');
+                    alert(t.errorUsernameRequired);
                     return;
                 }
                 if (newUserData.role === 'resident' && !newUserData.apartmentNumber) {
-                    alert('Please select apartment number for resident');
+                    alert(t.errorApartmentRequired);
                     return;
                 }
                 // NEW: Check for unique apartment number (residents only)
@@ -1206,7 +1231,7 @@
                     );
                     if (aptTakenBy) {
                         console.log('🚫 Duplicate apt blocked:', aptTakenBy.username, 'has', newUserData.apartmentNumber);  // Debug
-                        alert(`❌ Apartment ${newUserData.apartmentNumber} is already assigned to "${aptTakenBy.username}". Choose another.`);
+                        alert(`❌ ${t.errorApartmentTaken}`);
                         return;
                     }
                 }
@@ -1247,7 +1272,7 @@
                     await secondaryAuth.signOut();
                     await secondaryApp.delete();
 
-                    alert(`✅ User Created Successfully!\n\nUsername: ${newUserData.username}\nEmail: ${generatedEmail}\nPassword: ${newUserData.password}\nRole: ${newUserData.role}\n\n⚠️ IMPORTANT: Save this password!\nManager must give it to the resident.`);
+                    alert(`✅ ${t.successUserCreated}\n\nUsername: ${newUserData.username}\nEmail: ${generatedEmail}\nPassword: ${newUserData.password}\nRole: ${newUserData.role}\n\n⚠️ IMPORTANT: Save this password!\nManager must give it to the resident.`);
 
                     // Reset form
                     setNewUserData({
@@ -1261,9 +1286,9 @@
                 } catch (error) {
                     console.error('Create user error:', error);
                     if (error.code === 'auth/email-already-in-use') {
-                        alert('This username is already taken');
+                        alert(t.errorUsernameTaken);
                     } else if (error.code === 'auth/weak-password') {
-                        alert('Password should be at least 6 characters');
+                        alert(t.errorPasswordLength);
                     } else {
                         alert('Error creating user: ' + error.message);
                     }
@@ -1326,7 +1351,7 @@
                     await secondaryAuth.signOut();
                     await secondaryApp.delete();
 
-                    alert(`✅ Password Reset Successfully!\n\nUsername: ${resetPasswordData.username}\nNew Password: ${resetPasswordData.newPassword}\n\n⚠️ Give this password to the resident!`);
+                    alert(`✅ ${t.successPasswordReset}\n\nUsername: ${resetPasswordData.username}\nNew Password: ${resetPasswordData.newPassword}\n\n⚠️ Give this password to the resident!`);
 
                     setShowPasswordReset(false);
                     setResetPasswordData({ uid: '', username: '', email: '', newPassword: '' });
@@ -1336,7 +1361,7 @@
 
                     if (error.code === 'auth/email-already-in-use') {
                         // This is expected - Firebase deletes old user automatically
-                        alert(`✅ Password Reset Successfully!\n\nUsername: ${resetPasswordData.username}\nNew Password: ${resetPasswordData.newPassword}\n\n⚠️ Give this password to the resident!`);
+                        alert(`✅ ${t.successPasswordReset}\n\nUsername: ${resetPasswordData.username}\nNew Password: ${resetPasswordData.newPassword}\n\n⚠️ Give this password to the resident!`);
                         setShowPasswordReset(false);
                         setResetPasswordData({ uid: '', username: '', email: '', newPassword: '' });
                     } else {
@@ -1840,7 +1865,7 @@
                                                         className="px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
                                                     >
                                                         <Lock size={18} />
-                                                        🔒 Privacy Settings
+                                                        🔒 {t.privacySettings}  {/* ← Use translation */}
                                                     </button>
                                                 )}
                                                 {(userRole === 'admin' || userRole === 'manager') && (
