@@ -326,7 +326,7 @@
                 }
 
                 // For residents: always allow viewing own apartment (regardless of opt-out/tier)
-                if (targetApartmentNum === viewerApt) {
+                if (String(targetApartmentNum) === String(viewerApt)) {
                     console.log('👤 Own apt: Always visible');
                     return true;
                 }
@@ -355,7 +355,7 @@
                         return false;
                     } else {
                         // Viewer didn't opt out: See non-opted-out apartments
-                        const targetOptOut = data.buildingSettings?.privacyOptOuts?.[targetApartmentNum] || false;
+                        const targetOptOut = data.buildingSettings?.privacyOptOuts?.[String(targetApartmentNum)] || false;
                         console.log(`👀 Non-opted viewer: targetOptOut=${targetOptOut} → visible=${!targetOptOut}`);
                         return !targetOptOut;
                     }
@@ -439,7 +439,7 @@
                     locked: false  // Will auto-lock after first payment
                 },
                 monthlyBills: {
-                    '2025-01': {
+                    [`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`]: {  // ← ADD THIS
                         amount: 150,
                         dueDay: 5,
                         apartments: Object.fromEntries([...Array(16)].map((_, i) => [i + 1, { paid: false }]))
@@ -487,6 +487,7 @@
                                 }
 
                                 setData(processedData);
+                                cleanupExpiredAnnouncements();  // ← ADD THIS NEW ONE
                             } else {
                                 // First time - save default data to Firebase
                                 const defaultData = getDefaultData();
@@ -501,6 +502,7 @@
                                     }));
                                 }
                                 setData(processedData);
+                                cleanupExpiredAnnouncements();  // ← ADD THIS ONE LINE
                             }
                             setIsLoading(false);  // CHANGED: Moved outside if/else
                         }, (error) => {
@@ -1408,9 +1410,13 @@
                     });
 
                     // Prepare projects data
+                    // Prepare projects data
                     const projectsData = [['Project', 'Total', 'Collected', ...Array.from({ length: apartmentCount }, (_, i) => `Apt ${i + 1}`)]];
 
-                    (data.projects || []).forEach(project => {
+                    // FIX: Convert projects object to array (same as announcements)
+                    const projectsArray = data.projectsWithKeys || Object.values(data.projects || {});
+
+                    projectsArray.forEach(project => {  // ← FIXED: Now works with object structure
                         const row = [
                             language === 'he' ? project.nameHe : project.name,
                             `NIS ${project.total}`,
@@ -2893,7 +2899,7 @@
 
                                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
                                         {currentMonthData.apartments && Object.entries(currentMonthData.apartments).map(([num, apt]) => {
-                                            const canSee = canSeePaymentStatus(parseInt(num), viewerApt);  // Note: parseInt(num) since num is string key
+                                            const canSee = canSeePaymentStatus(num, viewerApt);
                                             const isPaid = apt.paid;
 
                                             return (
@@ -3030,7 +3036,7 @@
 
                                             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
                                                 {project.apartments && Object.entries(project.apartments).map(([num, apt]) => {
-                                                    const canSee = canSeePaymentStatus(parseInt(num), viewerApt);  // Same: parseInt for int comparison
+                                                    const canSee = canSeePaymentStatus(num, viewerApt);
                                                     const isPaid = apt.paid;
 
                                                     return (
