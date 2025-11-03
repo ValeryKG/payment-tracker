@@ -1,0 +1,16 @@
+{
+  "users": {
+    "ADMIN_UID_HERE": {
+      "role": "admin",
+      "username": "admin",
+      "email": "admin@test.com",
+      "createdAt": "2025-11-03T10:00:00Z"
+    },
+    "MANAGER_UID_HERE": {
+      "role": "manager",
+      "username": "manager",
+      "email": "manager@test.com",
+      "createdAt": "2025-11-03T16:30:00Z"
+    }
+  }
+}
