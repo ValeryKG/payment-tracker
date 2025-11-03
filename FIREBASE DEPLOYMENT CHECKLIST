@@ -111,6 +111,18 @@ json{
 }
 
 Click "Import"
+for manager - 
+{
+  "users": {
+    "MANAGER_UID_HERE": {
+      "role": "manager",
+      "username": "manager",
+      "email": "manager@test.com",
+      "createdAt": "2025-11-03T16:30:00Z"
+    }
+  }
+}
+
 
 METHOD 2: Manual Entry (Slower)
 
