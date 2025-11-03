@@ -4,6 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- COPYRIGHT METADATA - ADD THESE LINES -->
+    <meta name="author" content="Valery Lavrov">
+    <meta name="copyright" content="© 2025 Valery Lavrov. All Rights Reserved.">
+    <meta name="description" content="Building Payment Tracker - Proprietary software for managing apartment payments">
+    <meta name="robots" content="noindex, nofollow"> <!-- Keeps it private from search engines during beta -->
+    <meta property="og:title" content="Building Payment Tracker">
+    <meta property="og:description" content="© 2025 Valery Lavrov - Proprietary Software">
+
     <title>Building Payment Tracker</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -38,13 +47,13 @@
         // ===== ADD THIS ENTIRE FIREBASE SECTION BELOW =====
         // Initialize Firebase
         const firebaseConfig = {
-            apiKey: "AIzaSyBY26AKFktAv2sSAZTkxwu74fzszLqq728",
-            authDomain: "payment-tracker-227b9.firebaseapp.com",
-            projectId: "payment-tracker-227b9",
-            databaseURL: "https://payment-tracker-227b9-default-rtdb.europe-west1.firebasedatabase.app",
-            storageBucket: "payment-tracker-227b9.firebasestorage.app",
-            messagingSenderId: "260778013979",
-            appId: "1:260778013979:web:4e0051cdeff4fa4cab0fbe"
+            apiKey: "AIzaSyCXyJO9KHOb7_xQtkzVhmnpGLTiyJsC0v8",
+            authDomain: "payment-6b29e.firebaseapp.com",
+            projectId: "payment-6b29e",
+            databaseURL: "https://payment-6b29e-default-rtdb.europe-west1.firebasedatabase.app",
+            storageBucket: "payment-6b29e.firebasestorage.app",
+            messagingSenderId: "938336309361",
+            appId: "1:938336309361:web:a3727f20165735f7b00bd0"
         };
 
         // Initialize Firebase
@@ -170,21 +179,21 @@
             const [password, setPassword] = useState('');
             const [loginEmail, setLoginEmail] = useState('');
 
-const [language, setLanguage] = useState(() => {
-    // Check localStorage first (user's saved choice)
-    const saved = localStorage.getItem('userLanguage');
-    if (saved) return saved;
-    
-    // Browser detection fallback
-    const browserLang = navigator.language.toLowerCase();
-    
-    if (browserLang.startsWith('he')) return 'he';      // Hebrew
-    if (browserLang.startsWith('ru')) return 'ru';      // Russian
-    if (browserLang.startsWith('en')) return 'en';      // English
-    
-    // Default for unrecognized languages
-    return 'he';  // Default to Hebrew (primary audience)
-});
+            const [language, setLanguage] = useState(() => {
+                // Check localStorage first (user's saved choice)
+                const saved = localStorage.getItem('userLanguage');
+                if (saved) return saved;
+
+                // Browser detection fallback
+                const browserLang = navigator.language.toLowerCase();
+
+                if (browserLang.startsWith('he')) return 'he';      // Hebrew
+                if (browserLang.startsWith('ru')) return 'ru';      // Russian
+                if (browserLang.startsWith('en')) return 'en';      // English
+
+                // Default for unrecognized languages
+                return 'he';  // Default to Hebrew (primary audience)
+            });
             const [showAdminPanel, setShowAdminPanel] = useState(false);
             const [showProjectForm, setShowProjectForm] = useState(false);
             const [showMonthlySettings, setShowMonthlySettings] = useState(false);
@@ -650,7 +659,7 @@ const [language, setLanguage] = useState(() => {
                     errorUsernameTaken: 'This username is already taken',
                     errorMaxAnnouncementsSolution: 'Please delete old announcements or set expiration dates',
                     apartmentNumber: 'Apartment Number',
-usernameExample: 'or Email (e.g., apt1)',
+                    usernameExample: 'or Email (e.g., apt1)',
                 },
                 he: {
                     title: 'מעקב תשלומים בבניין',
@@ -767,127 +776,127 @@ usernameExample: 'or Email (e.g., apt1)',
                     errorUsernameTaken: 'שם משתמש זה תפוס',
                     errorMaxAnnouncementsSolution: 'אנא מחק הודעות ישנות או הגדר תאריכי תפוגה',
                     apartmentNumber: 'מספר דירה',
-usernameExample: 'או אימייל (לדוגמה, apt1)',
+                    usernameExample: 'או אימייל (לדוגמה, apt1)',
                 },
                 ru: {
-    title: 'Отслеживание платежей здания',
-    login: 'Вход менеджера',
-    logout: 'Выход',
-    adminPanel: 'Панель администратора',
-    managerPanel: 'Панель менеджера',
-    monthlyBills: 'Ежемесячные счета',
-    specialProjects: 'Специальные проекты',
-    apartment: 'Кв.',
-    paid: 'ОПЛАЧЕНО',
-    unpaid: 'НЕ ОПЛАЧЕНО',
-    overdue: 'ПРОСРОЧЕНО',
-    progress: 'Прогресс',
-    total: 'Итого',
-    perApartment: 'на квартиру',
-    dueDate: 'Срок оплаты',
-    lastUpdated: 'Последнее обновление',
-    password: 'Пароль',
-    submit: 'Подтвердить',
-    cancel: 'Отмена',
-    save: 'Сохранить',
-    delete: 'Удалить',
-    edit: 'Редактировать',
-    create: 'Создать',
-    close: 'Закрыть',
-    daysOverdue: 'дней просрочки',
-    daysUntilDue: 'дней до срока',
-    createProject: 'Создать специальный проект',
-    editMonthly: 'Редактировать ежемесячные счета',
-    manageManagers: 'Управление менеджерами',
-    projectName: 'Название проекта',
-    projectNameHe: 'Название проекта (иврит)',
-    totalAmount: 'Общая сумма',
-    description: 'Описание',
-    descriptionHe: 'Описание (иврит)',
-    monthlyAmount: 'Ежемесячная сумма на квартиру',
-    dueDayOfMonth: 'День оплаты в месяце',
-    currentManager: 'Текущий менеджер',
-    newManager: 'Email нового менеджера',
-    newPassword: 'Пароль нового менеджера',
-    assignManager: 'Назначить нового менеджера',
-    fillAllFields: 'Пожалуйста, заполните все поля',
-    projectCreated: 'Проект успешно создан!',
-    settingsSaved: 'Настройки успешно сохранены!',
-    managerAssigned: 'Новый менеджер успешно назначен!',
-    confirmDelete: 'Вы уверены, что хотите удалить этот проект?',
-    confirmPaymentTitle: 'Подтверждение изменения статуса оплаты',
-    confirmPaymentApartment: 'Квартира',
-    confirmPaymentPayment: 'Платеж',
-    confirmPaymentAmount: 'Сумма',
-    confirmPaymentCurrentStatus: 'Текущий статус',
-    confirmPaymentChangeTo: 'Изменить статус на',
-    confirmPaymentConfirm: '✓ Подтвердить',
-    monthlyBillLabel: 'Ежемесячный счет',
-    createUser: 'Создать пользователя',
-    addResident: 'Добавить жильца',
-    downloadBackup: '📥 Скачать резервную копию',
-    paymentReport: '📊 Отчет о платежах',
-    privacySettings: 'Настройки конфиденциальности',
-    privacyWarning: 'Внимание: Изменение настроек конфиденциальности влияет на возможность всех жильцов видеть статусы платежей.',
-    tier1Title: 'Уровень 1: Полная прозрачность',
-    tier1Desc: 'Все могут видеть все статусы платежей всех квартир. Максимальная прозрачность.',
-    tier1Example: 'Пример: "Кв. 5 - ОПЛАЧЕНО ✓" видно всем жильцам',
-    tier2Title: 'Уровень 2: Конфиденциальность по выбору',
-    tier2Desc: 'Каждая квартира может скрыть свой статус платежа от других. Менеджер всегда видит всё.',
-    tier2Example: 'Пример: "Кв. 5 - 🔒 Приватно" если выбрано скрытие',
-    tier3Title: 'Уровень 3: Только для менеджера',
-    tier3Desc: 'Только менеджер и администратор видят статусы платежей. Жильцы видят только свой статус.',
-    tier3Example: 'Пример: Жильцы видят только "Ваш статус: ОПЛАЧЕНО ✓"',
-    currentSetting: 'Текущая настройка',
-    privateStatus: 'Приватно',
-    postAnnouncement: 'Опубликовать объявление',
-    announcements: 'Объявления',
-    titleEnglish: 'Заголовок (английский)',
-    titleHebrew: 'Заголовок (иврит)',
-    messageEnglish: 'Сообщение (английский)',
-    messageHebrew: 'Сообщение (иврит)',
-    priorityLevel: 'Уровень приоритета',
-    priorityNormal: '🟢 Обычный',
-    priorityUrgent: '🟠 Срочный',
-    priorityCritical: '🔴 Критический',
-    expiresOn: 'Срок действия (необязательно)',
-    postedBy: 'Опубликовано',
-    expires: 'Истекает',
-    deleteAnnouncement: 'Удалить объявление',
-    noActiveAnnouncements: 'Нет активных объявлений.',
-    downloadBackup: 'Скачать резервную копию',
-    supportTools: 'Инструменты поддержки',
-    manageUsers: 'Управление пользователями',
-    manageUsersTitle: 'Управление пользователями - Сброс пароля',
-    resetPassword: 'Сбросить пароль',
-    residentSettings: 'Настройки жильца',
-    hideMyStatus: 'Скрыть мой статус оплаты',
-    hideStatusDesc: 'Когда включено, другие жильцы видят "🔒 Приватно" вместо вашего статуса оплаты.',
-    hideStatusNote: 'Примечание: Менеджер и администратор всегда видят ваш статус.',
-    currentStatus: 'Текущий статус',
-    hiddenFromOthers: '🔒 Скрыто от других',
-    visibleToAll: '👁️ Видно всем жильцам',
-    postedByOn: 'Опубликовано {role} {date}',
-    expiresDate: 'Истекает: {date}',
-    announcementsTitle: '📢 Объявления',
-    errorTotalPositive: 'Общая сумма должна быть положительной',
-    errorDueDatePast: 'Срок оплаты не может быть в прошлом',
-    errorPasswordLength: 'Пароль должен быть не менее 6 символов',
-    errorFillAllFields: 'Пожалуйста, заполните все обязательные поля',
-    errorApartmentTaken: 'Квартира уже назначена другому пользователю',
-    errorUsernameRequired: 'Пожалуйста, заполните имя пользователя и пароль',
-    errorApartmentRequired: 'Пожалуйста, выберите номер квартиры для жильца',
-    successUserCreated: 'Пользователь успешно создан!',
-    successPasswordReset: 'Пароль успешно сброшен!',
-    successAnnouncementPosted: 'Объявление успешно опубликовано!',
-    errorMaxAnnouncements: 'Достигнуто максимальное количество активных объявлений',
-    errorMaxAnnouncementsSolution: 'Пожалуйста, удалите старые объявления или установите сроки действия',
-    errorUsernameTaken: 'Это имя пользователя уже занято',
-    username: 'Имя пользователя',
-    role: 'Роль',
-    apartmentNumber: 'Номер квартиры',
-usernameExample: 'или Email (например, apt1)',
-}
+                    title: 'Отслеживание платежей здания',
+                    login: 'Вход менеджера',
+                    logout: 'Выход',
+                    adminPanel: 'Панель администратора',
+                    managerPanel: 'Панель менеджера',
+                    monthlyBills: 'Ежемесячные счета',
+                    specialProjects: 'Специальные проекты',
+                    apartment: 'Кв.',
+                    paid: 'ОПЛАЧЕНО',
+                    unpaid: 'НЕ ОПЛАЧЕНО',
+                    overdue: 'ПРОСРОЧЕНО',
+                    progress: 'Прогресс',
+                    total: 'Итого',
+                    perApartment: 'на квартиру',
+                    dueDate: 'Срок оплаты',
+                    lastUpdated: 'Последнее обновление',
+                    password: 'Пароль',
+                    submit: 'Подтвердить',
+                    cancel: 'Отмена',
+                    save: 'Сохранить',
+                    delete: 'Удалить',
+                    edit: 'Редактировать',
+                    create: 'Создать',
+                    close: 'Закрыть',
+                    daysOverdue: 'дней просрочки',
+                    daysUntilDue: 'дней до срока',
+                    createProject: 'Создать специальный проект',
+                    editMonthly: 'Редактировать ежемесячные счета',
+                    manageManagers: 'Управление менеджерами',
+                    projectName: 'Название проекта',
+                    projectNameHe: 'Название проекта (иврит)',
+                    totalAmount: 'Общая сумма',
+                    description: 'Описание',
+                    descriptionHe: 'Описание (иврит)',
+                    monthlyAmount: 'Ежемесячная сумма на квартиру',
+                    dueDayOfMonth: 'День оплаты в месяце',
+                    currentManager: 'Текущий менеджер',
+                    newManager: 'Email нового менеджера',
+                    newPassword: 'Пароль нового менеджера',
+                    assignManager: 'Назначить нового менеджера',
+                    fillAllFields: 'Пожалуйста, заполните все поля',
+                    projectCreated: 'Проект успешно создан!',
+                    settingsSaved: 'Настройки успешно сохранены!',
+                    managerAssigned: 'Новый менеджер успешно назначен!',
+                    confirmDelete: 'Вы уверены, что хотите удалить этот проект?',
+                    confirmPaymentTitle: 'Подтверждение изменения статуса оплаты',
+                    confirmPaymentApartment: 'Квартира',
+                    confirmPaymentPayment: 'Платеж',
+                    confirmPaymentAmount: 'Сумма',
+                    confirmPaymentCurrentStatus: 'Текущий статус',
+                    confirmPaymentChangeTo: 'Изменить статус на',
+                    confirmPaymentConfirm: '✓ Подтвердить',
+                    monthlyBillLabel: 'Ежемесячный счет',
+                    createUser: 'Создать пользователя',
+                    addResident: 'Добавить жильца',
+                    downloadBackup: '📥 Скачать резервную копию',
+                    paymentReport: '📊 Отчет о платежах',
+                    privacySettings: 'Настройки конфиденциальности',
+                    privacyWarning: 'Внимание: Изменение настроек конфиденциальности влияет на возможность всех жильцов видеть статусы платежей.',
+                    tier1Title: 'Уровень 1: Полная прозрачность',
+                    tier1Desc: 'Все могут видеть все статусы платежей всех квартир. Максимальная прозрачность.',
+                    tier1Example: 'Пример: "Кв. 5 - ОПЛАЧЕНО ✓" видно всем жильцам',
+                    tier2Title: 'Уровень 2: Конфиденциальность по выбору',
+                    tier2Desc: 'Каждая квартира может скрыть свой статус платежа от других. Менеджер всегда видит всё.',
+                    tier2Example: 'Пример: "Кв. 5 - 🔒 Приватно" если выбрано скрытие',
+                    tier3Title: 'Уровень 3: Только для менеджера',
+                    tier3Desc: 'Только менеджер и администратор видят статусы платежей. Жильцы видят только свой статус.',
+                    tier3Example: 'Пример: Жильцы видят только "Ваш статус: ОПЛАЧЕНО ✓"',
+                    currentSetting: 'Текущая настройка',
+                    privateStatus: 'Приватно',
+                    postAnnouncement: 'Опубликовать объявление',
+                    announcements: 'Объявления',
+                    titleEnglish: 'Заголовок (английский)',
+                    titleHebrew: 'Заголовок (иврит)',
+                    messageEnglish: 'Сообщение (английский)',
+                    messageHebrew: 'Сообщение (иврит)',
+                    priorityLevel: 'Уровень приоритета',
+                    priorityNormal: '🟢 Обычный',
+                    priorityUrgent: '🟠 Срочный',
+                    priorityCritical: '🔴 Критический',
+                    expiresOn: 'Срок действия (необязательно)',
+                    postedBy: 'Опубликовано',
+                    expires: 'Истекает',
+                    deleteAnnouncement: 'Удалить объявление',
+                    noActiveAnnouncements: 'Нет активных объявлений.',
+                    downloadBackup: 'Скачать резервную копию',
+                    supportTools: 'Инструменты поддержки',
+                    manageUsers: 'Управление пользователями',
+                    manageUsersTitle: 'Управление пользователями - Сброс пароля',
+                    resetPassword: 'Сбросить пароль',
+                    residentSettings: 'Настройки жильца',
+                    hideMyStatus: 'Скрыть мой статус оплаты',
+                    hideStatusDesc: 'Когда включено, другие жильцы видят "🔒 Приватно" вместо вашего статуса оплаты.',
+                    hideStatusNote: 'Примечание: Менеджер и администратор всегда видят ваш статус.',
+                    currentStatus: 'Текущий статус',
+                    hiddenFromOthers: '🔒 Скрыто от других',
+                    visibleToAll: '👁️ Видно всем жильцам',
+                    postedByOn: 'Опубликовано {role} {date}',
+                    expiresDate: 'Истекает: {date}',
+                    announcementsTitle: '📢 Объявления',
+                    errorTotalPositive: 'Общая сумма должна быть положительной',
+                    errorDueDatePast: 'Срок оплаты не может быть в прошлом',
+                    errorPasswordLength: 'Пароль должен быть не менее 6 символов',
+                    errorFillAllFields: 'Пожалуйста, заполните все обязательные поля',
+                    errorApartmentTaken: 'Квартира уже назначена другому пользователю',
+                    errorUsernameRequired: 'Пожалуйста, заполните имя пользователя и пароль',
+                    errorApartmentRequired: 'Пожалуйста, выберите номер квартиры для жильца',
+                    successUserCreated: 'Пользователь успешно создан!',
+                    successPasswordReset: 'Пароль успешно сброшен!',
+                    successAnnouncementPosted: 'Объявление успешно опубликовано!',
+                    errorMaxAnnouncements: 'Достигнуто максимальное количество активных объявлений',
+                    errorMaxAnnouncementsSolution: 'Пожалуйста, удалите старые объявления или установите сроки действия',
+                    errorUsernameTaken: 'Это имя пользователя уже занято',
+                    username: 'Имя пользователя',
+                    role: 'Роль',
+                    apartmentNumber: 'Номер квартиры',
+                    usernameExample: 'или Email (например, apt1)',
+                }
             };
 
             const t = texts[language];
@@ -1251,9 +1260,13 @@ usernameExample: 'или Email (например, apt1)',
             const handlePostAnnouncement = async () => {
                 // STEP 1: Validate form fields
                 // Check if both English title and message are filled
-                if (!newAnnouncement.titleEn || !newAnnouncement.messageEn) {
-                    alert('Please fill at least the English title and message.');
-                    return;
+                // Validate expiration date (if provided)
+                if (newAnnouncement.expiresAt) {
+                    const today = new Date().toISOString().split('T')[0];
+                    if (newAnnouncement.expiresAt < today) {
+                        alert(t.errorDueDatePast);
+                        return;
+                    }
                 }
 
                 // STEP 2: Check announcement posting limits (prevent spam)
@@ -1799,37 +1812,34 @@ usernameExample: 'или Email (например, apt1)',
                             <div className="min-h-screen flex items-center justify-center -mt-8">
                                 <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
                                     <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">{t.title}</h2>
-             <div className="flex gap-2">
-    <button
-        onClick={() => { setLanguage('en'); localStorage.setItem('userLanguage', 'en'); }}
-        className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-            language === 'en' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'
-        }`}
-    >
-        English
-    </button>
-    <button
-        onClick={() => { setLanguage('he'); localStorage.setItem('userLanguage', 'he'); }}
-        className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-            language === 'he' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'
-        }`}
-    >
-        עברית
-    </button>
-    <button
-        onClick={() => { setLanguage('ru'); localStorage.setItem('userLanguage', 'ru'); }}
-        className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-            language === 'ru' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'
-        }`}
-    >
-        Русский
-    </button>
-</div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => { setLanguage('en'); localStorage.setItem('userLanguage', 'en'); }}
+                                            className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'en' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'
+                                                }`}
+                                        >
+                                            English
+                                        </button>
+                                        <button
+                                            onClick={() => { setLanguage('he'); localStorage.setItem('userLanguage', 'he'); }}
+                                            className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'he' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'
+                                                }`}
+                                        >
+                                            עברית
+                                        </button>
+                                        <button
+                                            onClick={() => { setLanguage('ru'); localStorage.setItem('userLanguage', 'ru'); }}
+                                            className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'ru' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'
+                                                }`}
+                                        >
+                                            Русский
+                                        </button>
+                                    </div>
                                     <input
                                         type="text"
                                         value={loginEmail}
                                         onChange={(e) => setLoginEmail(e.target.value)}
-          placeholder={t.username + " " + t.usernameExample}
+                                        placeholder={t.username + " " + t.usernameExample}
                                         className="w-full px-4 py-3 border border-slate-300 rounded-lg mb-4 text-base"
                                     />
                                     <input
@@ -1856,32 +1866,29 @@ usernameExample: 'или Email (например, apt1)',
                                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                                         <h1 className="text-xl sm:text-3xl font-bold text-slate-800">{t.title}</h1>
                                         <div className="flex gap-2 flex-wrap">
-             <div className="flex gap-2">
-    <button
-        onClick={() => { setLanguage('en'); localStorage.setItem('userLanguage', 'en'); }}
-        className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-            language === 'en' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'
-        }`}
-    >
-        English
-    </button>
-    <button
-        onClick={() => { setLanguage('he'); localStorage.setItem('userLanguage', 'he'); }}
-        className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-            language === 'he' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'
-        }`}
-    >
-        עברית
-    </button>
-    <button
-        onClick={() => { setLanguage('ru'); localStorage.setItem('userLanguage', 'ru'); }}
-        className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-            language === 'ru' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'
-        }`}
-    >
-        Русский
-    </button>
-</div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => { setLanguage('en'); localStorage.setItem('userLanguage', 'en'); }}
+                                                    className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'en' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'
+                                                        }`}
+                                                >
+                                                    English
+                                                </button>
+                                                <button
+                                                    onClick={() => { setLanguage('he'); localStorage.setItem('userLanguage', 'he'); }}
+                                                    className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'he' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'
+                                                        }`}
+                                                >
+                                                    עברית
+                                                </button>
+                                                <button
+                                                    onClick={() => { setLanguage('ru'); localStorage.setItem('userLanguage', 'ru'); }}
+                                                    className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'ru' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'
+                                                        }`}
+                                                >
+                                                    Русский
+                                                </button>
+                                            </div>
                                             {isAuthenticated ? (
                                                 <>
                                                     {isAuthenticated && (
@@ -2046,13 +2053,13 @@ usernameExample: 'или Email (например, apt1)',
                                                     </button>
                                                 )}
                                                 {(userRole === 'admin' || userRole === 'manager') && (
-            <button
-    onClick={() => setShowAnnouncementForm(true)}
-    className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
->
-    <Plus size={18} />
-    📢 {t.postAnnouncement}  {/* ← Use translation */}
-</button>
+                                                    <button
+                                                        onClick={() => setShowAnnouncementForm(true)}
+                                                        className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                                    >
+                                                        <Plus size={18} />
+                                                        📢 {t.postAnnouncement}  {/* ← Use translation */}
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>
@@ -2092,7 +2099,7 @@ usernameExample: 'или Email (например, apt1)',
                                                 type="text"
                                                 value={loginEmail}
                                                 onChange={(e) => setLoginEmail(e.target.value)}
-                 placeholder={t.username + " " + t.usernameExample}
+                                                placeholder={t.username + " " + t.usernameExample}
                                                 className="w-full px-4 py-3 border border-slate-300 rounded-lg mb-4 text-base"
                                             />
                                             <input
@@ -3308,6 +3315,16 @@ usernameExample: 'или Email (например, apt1)',
                                 <div className="text-center text-xs sm:text-sm text-slate-500 mt-8 pb-4">
                                     {t.lastUpdated}: {new Date().toLocaleString(language === 'he' ? 'he-IL' : 'en-US')}
                                 </div>
+                                {/* COPYRIGHT FOOTER */}
+                                <div className="text-center text-xs sm:text-sm text-slate-600 mt-8 pb-4 border-t border-slate-200 pt-4">
+                                    <p className="font-semibold">© 2025 Valery Lavrov. All Rights Reserved.</p>
+                                    <p className="text-slate-500 mt-1">Proprietary Software - Unauthorized use prohibited</p>
+                                    <div className="flex justify-center gap-4 mt-3">
+                                        <a href="terms.html" className="text-blue-600 hover:text-blue-700 underline">Terms of Service</a>
+                                        <a href="privacy.html" className="text-blue-600 hover:text-blue-700 underline">Privacy Policy</a>
+                                        <a href="contact.html" className="text-blue-600 hover:text-blue-700 underline">Contact</a>
+                                    </div>
+                                </div>
 
                             </>
                         )}
@@ -3319,5 +3336,6 @@ usernameExample: 'или Email (например, apt1)',
         ReactDOM.render(<PaymentTracker />, document.getElementById('root'));
     </script>
 </body>
+
 
 </html>
