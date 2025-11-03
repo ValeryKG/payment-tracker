@@ -1,0 +1,233 @@
+ FIREBASE DEPLOYMENT CHECKLIST
+Use this for EVERY new building deployment
+
+STEP 1: CREATE FIREBASE PROJECT (2 min)
+
+Go to: https://console.firebase.google.com
+Click "Add project"
+Project name: payment-[building-name] (e.g., payment-rothschild-12)
+Disable Google Analytics (not needed)
+Click "Create project"
+Wait for completion → Click "Continue"
+
+
+STEP 2: ENABLE REALTIME DATABASE (1 min)
+
+Left sidebar → Click "Realtime Database"
+Click "Create Database"
+Location: Select "Europe (europe-west1)" (or your region)
+Security rules: Select "Start in locked mode"
+Click "Enable"
+Wait for database creation
+
+
+STEP 3: ENABLE AUTHENTICATION (1 min)
+
+Left sidebar → Click "Authentication"
+Click "Get started"
+Click "Sign-in method" tab
+Find "Email/Password" row
+Click on it
+Toggle "Enable" to ON
+Click "Save"
+
+
+STEP 4: ADD AUTHORIZED DOMAIN (30 sec)
+
+Still in Authentication section
+Click "Settings" tab (top of page)
+Scroll down to "Authorized domains" section
+Click "Add domain"
+Enter: valerykg.github.io (or your custom domain)
+Click "Add"
+
+
+STEP 5: GET FIREBASE CONFIG (1 min)
+
+Click ⚙️ icon (top left) → Select "Project settings"
+Scroll down to "Your apps" section
+Click "</>" icon (Web app)
+App nickname: payment-tracker
+DO NOT check Firebase Hosting checkbox
+Click "Register app"
+COPY the entire firebaseConfig object:
+
+javascriptconst firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+  databaseURL: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "..."
+};
+
+Click "Continue to console"
+
+
+STEP 6: UPDATE HTML FILE (2 min)
+
+Open your HTML file in text editor
+Find line ~27 with old firebaseConfig
+REPLACE entire firebaseConfig object with the one you copied
+IMPORTANT: Keep this line AFTER the config:
+
+javascript   firebase.initializeApp(firebaseConfig);
+
+Save file
+
+
+STEP 7: CREATE FIRST ADMIN USER (3 min)
+A. Create user in Authentication:
+
+Firebase Console → Authentication → Users tab
+Click "Add user" button
+Email: admin@test.com (or your preferred admin email)
+Password: Choose strong password (min 6 characters)
+Click "Add user"
+COPY THE UID - long string like K3B96KicLke8PiwnyeG7hWwzjfO2
+
+(Click on user row to see full UID if needed)
+
+
+
+B. Add admin role in Database:
+METHOD 1: Import JSON (Faster)
+
+Firebase Console → Realtime Database → Data tab
+Click "⋮" (three dots menu) at top right
+Select "Import JSON"
+Paste this JSON (replace YOUR_UID_HERE with copied UID):
+
+json{
+  "users": {
+    "YOUR_UID_HERE": {
+      "role": "admin",
+      "username": "admin",
+      "email": "admin@test.com",
+      "createdAt": "2025-11-03T10:00:00Z"
+    }
+  }
+}
+
+Click "Import"
+
+METHOD 2: Manual Entry (Slower)
+
+Firebase Console → Realtime Database → Data tab
+Hover over root / → Click "+"
+Name: users → Click "+" next to it
+Name: [PASTE YOUR UID] → Click "+" next to it
+Add these 4 fields:
+
+Name: role → Value: admin
+Name: username → Value: admin
+Name: email → Value: admin@test.com
+Name: createdAt → Value: 2025-11-03T10:00:00Z
+
+
+Click "Add"
+
+
+STEP 8: SET FIREBASE SECURITY RULES (2 min)
+
+Firebase Console → Realtime Database → Rules tab
+DELETE ALL existing rules
+COPY-PASTE these rules exactly:
+
+json{
+  "rules": {
+    "buildingData": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'manager')",
+      "buildingSettings": {
+        "privacyOptOuts": {
+          "$apartmentNum": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('apartmentNumber').val() == $apartmentNum"
+          }
+        }
+      }
+    },
+    "users": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'manager')",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'manager')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'manager' && (!newData.exists() || newData.child('role').val() === 'resident')))"
+      }
+    },
+    "supportBackups": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    }
+  }
+}
+
+Click "Publish"
+Confirm warning dialog
+
+
+STEP 9: DEPLOY TO GITHUB PAGES (3 min)
+
+Save your updated HTML file
+Commit to GitHub:
+
+bash   git add index.html
+   git commit -m "Update Firebase config for new deployment"
+   git push origin main
+
+Wait 1-2 minutes for GitHub Pages to rebuild
+Visit: https://valerykg.github.io/payment/
+
+
+STEP 10: TEST DEPLOYMENT (2 min)
+
+Open deployed URL in browser
+Login as admin:
+
+Username: admin@test.com (or your email)
+Password: [your chosen password]
+
+
+Should see "Admin Panel" button
+Click Admin Panel → Try creating a test project
+Check Firebase Database → Should see buildingData node created
+
+
+✅ DEPLOYMENT COMPLETE
+Total time: ~15 minutes
+
+📋 QUICK CHECKLIST
+
+☐ Firebase project created
+☐ Realtime Database enabled (Europe region)
+☐ Authentication enabled (Email/Password)
+☐ Authorized domain added
+☐ Firebase config copied to HTML
+☐ Admin user created in Auth
+☐ Admin role added to Database
+☐ Security rules published
+☐ HTML pushed to GitHub
+☐ Login tested successfully
+
+
+🔧 TROUBLESHOOTING
+Can't login:
+
+Check UID matches between Auth and Database
+Verify Firebase rules are published
+Clear browser cache
+
+Database not connecting:
+
+Verify databaseURL in config is correct
+Check authorized domains include your deployment URL
+Check browser console for errors
+
+Permission denied:
+
+Verify user has role: "admin" in database
+Re-publish Firebase rules
+Re-login
+
+
+END OF GUIDE
