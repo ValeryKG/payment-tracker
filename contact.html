@@ -1,0 +1,358 @@
+<!--
+════════════════════════════════════════════════════════════════
+© 2025 VALERY LAVROV - ALL RIGHTS RESERVED
+Building Payment Tracker - Proprietary Software
+
+TRADE SECRET NOTICE:
+This software contains confidential and proprietary information
+protected under Israeli Trade Secret Law (Protection of Trade 
+Secrets Law, 5765-2005) and international copyright law.
+
+UNAUTHORIZED USE PROHIBITED:
+• Copying, modification, or reverse engineering is strictly forbidden
+• Sharing credentials or code constitutes breach of contract
+• Violators will be prosecuted under Israeli law
+
+Patent Pending: Business logic and pricing algorithms
+Author: Valery Lavrov
+Email: support@buildingtracker.com
+Last Updated: November 4, 2025
+════════════════════════════════════════════════════════════════
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- COPYRIGHT METADATA -->
+    <meta name="author" content="Valery Lavrov">
+    <meta name="copyright" content="© 2025 Valery Lavrov. All Rights Reserved.">
+    <meta name="description" content="Contact & Support - Building Payment Tracker">
+    <meta name="robots" content="index, follow">
+    
+    <title>Contact & Support - Building Payment Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        .rtl { direction: rtl; }
+        .ltr { direction: ltr; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div id="root"></div>
+    
+    <script>
+        let currentLang = 'he';  // Default to Hebrew
+        
+        const texts = {
+            en: {
+                title: "Contact & Support",
+                subtitle: "Building Payment Tracker",
+                
+                sections: [
+                    {
+                        icon: "📧",
+                        title: "Email Support",
+                        content: `For technical support, billing questions, or general inquiries:
+
+Email: support@buildingtracker.com
+
+Response Time:
+• Basic/Pro: Within 48-72 hours
+• Enterprise: Priority support within 12 hours
+
+Business Hours: Sunday-Thursday, 9:00-17:00 (Israel Time)
+
+Please include:
+• Your building name
+• Account email
+• Detailed description of the issue
+• Screenshots if applicable`
+                    },
+                    {
+                        icon: "🏢",
+                        title: "Business Information",
+                        content: `Developer: Valery Lavrov
+
+Business Name: Valery Lavrov (עוסק פטור)
+Business ID: [To be registered]
+
+Location: Israel
+Registered: 2025
+
+This software is developed and operated in Israel under Israeli law.`
+                    },
+                    {
+                        icon: "❓",
+                        title: "Frequently Asked Questions",
+                        content: `**How do I reset my password?**
+Contact your building manager or email support@buildingtracker.com with your username.
+
+**Can I access multiple buildings?**
+Currently, each building requires a separate login. Multi-building dashboard coming soon.
+
+**Is my data secure?**
+Yes. All data is encrypted and stored on GDPR-compliant servers in Europe (Belgium).
+
+**Can I export my data?**
+Yes. Managers can download payment reports in Excel format. Contact support for full data export.
+
+**What happens if I stop paying?**
+Your service will be suspended after 30 days of non-payment. Data is retained for 90 days for recovery.
+
+**Do you offer refunds?**
+Subscription fees are non-refundable except as required by Israeli consumer protection law.`
+                    },
+                    {
+                        icon: "🐛",
+                        title: "Report a Bug",
+                        content: `Found a technical issue? Help us improve!
+
+Email: support@buildingtracker.com
+Subject: "Bug Report"
+
+Include:
+• What you were trying to do
+• What happened instead
+• Your browser and device
+• Screenshots if possible
+
+We prioritize bug fixes and aim to resolve critical issues within 48 hours.`
+                    },
+                    {
+                        icon: "💡",
+                        title: "Feature Requests",
+                        content: `Have an idea for a new feature?
+
+Email: support@buildingtracker.com
+Subject: "Feature Request"
+
+We review all suggestions and prioritize based on:
+• User demand
+• Technical feasibility
+• Alignment with product vision
+
+Popular requests may be included in future updates.`
+                    },
+                    {
+                        icon: "⚖️",
+                        title: "Legal & Compliance",
+                        content: `For legal inquiries, data protection requests, or copyright concerns:
+
+Email: support@buildingtracker.com
+Subject: "Legal Inquiry"
+
+Data Protection Officer: Valery Lavrov
+
+Privacy Requests: Access, deletion, or portability requests will be processed within 30 days.
+
+Israeli Privacy Authority: רשות הגנת הפרטיות
+Website: https://www.gov.il/he/departments/the_privacy_protection_authority`
+                    },
+                    {
+                        icon: "🚀",
+                        title: "Sales & Partnerships",
+                        content: `Interested in using this system for your property management company?
+
+Email: support@buildingtracker.com
+Subject: "Business Inquiry"
+
+We offer:
+• Custom pricing for multiple buildings
+• White-label solutions
+• API integration (coming soon)
+• Dedicated account management
+
+Response time: 2-3 business days`
+                    }
+                ],
+                
+                backButton: "← Back to App",
+                switchLang: "עברית"
+            },
+            
+            he: {
+                title: "יצירת קשר ותמיכה",
+                subtitle: "מערכת מעקב תשלומים לבניין",
+                
+                sections: [
+                    {
+                        icon: "📧",
+                        title: "תמיכה בדוא״ל",
+                        content: `לתמיכה טכנית, שאלות חיוב או פניות כלליות:
+
+דוא״ל: support@buildingtracker.com
+
+זמן תגובה:
+• Basic/Pro: תוך 48-72 שעות
+• Enterprise: תמיכה עדיפה תוך 12 שעות
+
+שעות עבודה: ראשון-חמישי, 9:00-17:00
+
+אנא כלול:
+• שם הבניין
+• דוא״ל החשבון
+• תיאור מפורט של הבעיה
+• צילומי מסך אם רלוונטי`
+                    },
+                    {
+                        icon: "🏢",
+                        title: "פרטי עסק",
+                        content: `מפתח: ולרי לברוב
+
+שם עסק: ולרי לברוב (עוסק פטור)
+מספר עוסק: [ממתין לרישום]
+
+מיקום: ישראל
+נרשם: 2025
+
+תוכנה זו מפותחת ומופעלת בישראל תחת החוק הישראלי.`
+                    },
+                    {
+                        icon: "❓",
+                        title: "שאלות נפוצות",
+                        content: `**איך מאפסים סיסמה?**
+צור קשר עם מנהל הבניין או שלח דוא״ל ל-support@buildingtracker.com עם שם המשתמש שלך.
+
+**האם אפשר לגשת למספר בניינים?**
+כרגע, כל בניין דורש כניסה נפרדת. לוח מחוונים לבניינים מרובים בקרוב.
+
+**האם הנתונים שלי מאובטחים?**
+כן. כל הנתונים מוצפנים ומאוחסנים בשרתים תואמי GDPR באירופה (בלגיה).
+
+**האם אפשר לייצא את הנתונים?**
+כן. מנהלים יכולים להוריד דוחות תשלום בפורמט Excel. צור קשר לתמיכה לייצוא נתונים מלא.
+
+**מה קורה אם אפסיק לשלם?**
+השירות יושעה לאחר 30 יום של אי תשלום. הנתונים נשמרים למשך 90 יום לשחזור.
+
+**האם יש החזרים?**
+דמי מנוי אינם ניתנים להחזר אלא כנדרש על פי חוק הגנת הצרכן הישראלי.`
+                    },
+                    {
+                        icon: "🐛",
+                        title: "דיווח על באג",
+                        content: `מצאת בעיה טכנית? עזור לנו להשתפר!
+
+דוא״ל: support@buildingtracker.com
+נושא: "דיווח באג"
+
+כלול:
+• מה ניסית לעשות
+• מה קרה במקום זאת
+• הדפדפן והמכשיר שלך
+• צילומי מסך אם אפשר
+
+אנו נותנים עדיפות לתיקוני באגים ושואפים לפתור בעיות קריטיות תוך 48 שעות.`
+                    },
+                    {
+                        icon: "💡",
+                        title: "בקשות לתכונות",
+                        content: `יש לך רעיון לתכונה חדשה?
+
+דוא״ל: support@buildingtracker.com
+נושא: "בקשת תכונה"
+
+אנו בודקים את כל ההצעות ונותנים עדיפות על סמך:
+• ביקוש משתמשים
+• היתכנות טכנית
+• התאמה לחזון המוצר
+
+בקשות פופולריות עשויות להיכלל בעדכונים עתידיים.`
+                    },
+                    {
+                        icon: "⚖️",
+                        title: "משפטי ותאימות",
+                        content: `לפניות משפטיות, בקשות הגנת מידע או חששות זכויות יוצרים:
+
+דוא״ל: support@buildingtracker.com
+נושא: "פנייה משפטית"
+
+קצין הגנת מידע: ולרי לברוב
+
+בקשות פרטיות: בקשות גישה, מחיקה או ניידות יעובדו תוך 30 יום.
+
+רשות הגנת הפרטיות הישראלית
+אתר: https://www.gov.il/he/departments/the_privacy_protection_authority`
+                    },
+                    {
+                        icon: "🚀",
+                        title: "מכירות ושותפויות",
+                        content: `מעוניין להשתמש במערכת זו עבור חברת ניהול הנכסים שלך?
+
+דוא״ל: support@buildingtracker.com
+נושא: "פנייה עסקית"
+
+אנו מציעים:
+• תמחור מותאם לבניינים מרובים
+• פתרונות White-label
+• אינטגרציית API (בקרוב)
+• ניהול חשבון ייעודי
+
+זמן תגובה: 2-3 ימי עסקים`
+                    }
+                ],
+                
+                backButton: "→ חזרה לאפליקציה",
+                switchLang: "English"
+            }
+        };
+        
+        function render() {
+            const t = texts[currentLang];
+            const isRTL = currentLang === 'he';
+            
+            document.getElementById('root').innerHTML = `
+                <div class="${isRTL ? 'rtl' : 'ltr'} max-w-4xl mx-auto p-4 sm:p-8">
+                    <div class="bg-white rounded-lg shadow-lg p-6 sm:p-8 mb-6">
+                        <!-- Header -->
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h1 class="text-3xl sm:text-4xl font-bold text-slate-800 mb-2">${t.title}</h1>
+                                <p class="text-slate-600">${t.subtitle}</p>
+                            </div>
+                            <button onclick="toggleLanguage()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
+                                ${t.switchLang}
+                            </button>
+                        </div>
+                        
+                        <!-- Contact Cards -->
+                        <div class="space-y-6">
+                            ${t.sections.map(section => `
+                                <div class="bg-slate-50 rounded-lg p-6 border border-slate-200">
+                                    <h2 class="text-2xl font-bold text-slate-800 mb-3">
+                                        ${section.icon} ${section.title}
+                                    </h2>
+                                    <div class="text-slate-700 leading-relaxed whitespace-pre-line">${section.content}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <!-- Back Button -->
+                        <div class="mt-8 pt-6 border-t border-slate-200">
+                            <a href="index.html" class="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                                ${t.backButton}
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div class="text-center text-xs text-slate-500 mb-8">
+                        <p>© 2025 Valery Lavrov. All Rights Reserved.</p>
+                        <p class="mt-1">Questions? Email: support@buildingtracker.com</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'he' : 'en';
+            render();
+        }
+        
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
