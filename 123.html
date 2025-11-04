@@ -1,3 +1,24 @@
+<!--
+════════════════════════════════════════════════════════════════
+© 2025 VALERY LAVROV - ALL RIGHTS RESERVED
+Building Payment Tracker - Proprietary Software
+
+TRADE SECRET NOTICE:
+This software contains confidential and proprietary information
+protected under Israeli Trade Secret Law (Protection of Trade 
+Secrets Law, 5765-2005) and international copyright law.
+
+UNAUTHORIZED USE PROHIBITED:
+- Copying, modification, or reverse engineering is strictly forbidden
+- Sharing credentials or code constitutes breach of contract
+- Violators will be prosecuted under Israeli law
+
+Patent Pending: Business logic and pricing algorithms
+Author: Valery Lavrov
+Email: support@buildingtracker.com
+Last Updated: November 3, 2025
+════════════════════════════════════════════════════════════════
+-->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -208,6 +229,12 @@
             const [showResidentPanel, setShowResidentPanel] = useState(false);
             const [residentApartmentNum, setResidentApartmentNum] = useState(null);
             const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
+            const [showUserAgreement, setShowUserAgreement] = useState(false);
+            const [agreementChecks, setAgreementChecks] = useState({
+                terms: false,
+                privacy: false,
+                authorized: false
+            });
             const [newAnnouncement, setNewAnnouncement] = useState({
                 titleEn: '',
                 titleHe: '',
@@ -1008,6 +1035,12 @@
                         }
 
 
+                        // Check if user has accepted agreement
+                        const agreementAccepted = localStorage.getItem(`userAgreement_${user.uid}`);
+                        if (!agreementAccepted) {
+                            setShowUserAgreement(true);
+                        }
+
                         setShowLogin(false);
                         setPassword('');
                         setLoginEmail('');
@@ -1023,6 +1056,36 @@
                         alert('Login error: ' + error.message);
                     }
                 }
+            };
+            const handleAcceptAgreement = () => {
+                const allChecked = agreementChecks.terms && agreementChecks.privacy &&
+                    (userRole === 'resident' || agreementChecks.authorized);
+
+                if (!allChecked) {
+                    alert(language === 'he'
+                        ? 'אנא אשר את כל התיבות כדי להמשיך'
+                        : 'Please check all boxes to continue');
+                    return;
+                }
+
+                // Store agreement acceptance with timestamp
+                const user = auth.currentUser;
+                if (user) {
+                    localStorage.setItem(`userAgreement_${user.uid}`, new Date().toISOString());
+                    setShowUserAgreement(false);
+                }
+            };
+
+            const handleDeclineAgreement = async () => {
+                await auth.signOut();
+                setIsAuthenticated(false);
+                setUserRole(null);
+                setShowUserAgreement(false);
+                localStorage.removeItem('isAuthenticated');
+                localStorage.removeItem('userRole');
+                alert(language === 'he'
+                    ? 'עליך לקבל את התנאים כדי להשתמש במערכת'
+                    : 'You must accept the terms to use this system');
             };
 
             const confirmTogglePaymentStatus = (type, id, apartmentNum) => {
@@ -3069,6 +3132,137 @@
                                         )}
                                     </div>
                                 ) : null}
+
+                                {/* User Agreement Modal */}
+                                {showUserAgreement && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+                                        <div className="bg-white rounded-lg p-6 sm:p-8 w-full max-w-2xl">
+                                            <div className="text-center mb-6">
+                                                <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">
+                                                    {language === 'he' ? '⚖️ ברוכים הבאים' : '⚖️ Welcome'}
+                                                </h2>
+                                                <p className="text-slate-600">
+                                                    {language === 'he' 
+                                                        ? 'אנא קרא ואשר את התנאים הבאים'
+                                                        : 'Please review and accept the following terms'}
+                                                </p>
+                                            </div>
+
+                                            {/* Copyright Notice */}
+                                            <div className="bg-red-50 border-2 border-red-400 rounded-lg p-4 mb-6">
+                                                <p className="text-red-900 font-bold text-center text-sm">
+                                                    © 2025 Valery Lavrov - All Rights Reserved
+                                                </p>
+                                                <p className="text-red-800 text-xs text-center mt-1">
+                                                    {language === 'he'
+                                                        ? 'תוכנה קניינית - מוגנת על פי חוק'
+                                                        : 'Proprietary Software - Protected by Law'}
+                                                </p>
+                                            </div>
+
+                                            {/* Checkboxes */}
+                                            <div className="space-y-4 mb-6">
+                                                {/* Terms of Service */}
+                                                <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border border-slate-300">
+                                                    <input
+                                                        type="checkbox"
+                                                        id="agree-terms"
+                                                        checked={agreementChecks.terms}
+                                                        onChange={(e) => setAgreementChecks({...agreementChecks, terms: e.target.checked})}
+                                                        className="mt-1 w-5 h-5 cursor-pointer"
+                                                    />
+                                                    <label htmlFor="agree-terms" className="flex-1 cursor-pointer">
+                                                        <span className="font-semibold text-slate-800">
+                                                            {language === 'he' 
+                                                                ? 'אני מסכים לתנאי השימוש'
+                                                                : 'I agree to the Terms of Service'}
+                                                        </span>
+                                                        <a 
+                                                            href="terms.html" 
+                                                            target="_blank" 
+                                                            className="text-blue-600 hover:text-blue-700 underline text-sm block mt-1"
+                                                        >
+                                                            {language === 'he' ? '📄 קרא תנאי שימוש' : '📄 Read Terms'}
+                                                        </a>
+                                                    </label>
+                                                </div>
+
+                                                {/* Privacy Policy */}
+                                                <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border border-slate-300">
+                                                    <input
+                                                        type="checkbox"
+                                                        id="agree-privacy"
+                                                        checked={agreementChecks.privacy}
+                                                        onChange={(e) => setAgreementChecks({...agreementChecks, privacy: e.target.checked})}
+                                                        className="mt-1 w-5 h-5 cursor-pointer"
+                                                    />
+                                                    <label htmlFor="agree-privacy" className="flex-1 cursor-pointer">
+                                                        <span className="font-semibold text-slate-800">
+                                                            {language === 'he'
+                                                                ? 'אני מסכים למדיניות הפרטיות'
+                                                                : 'I agree to the Privacy Policy'}
+                                                        </span>
+                                                        <a 
+                                                            href="privacy.html" 
+                                                            target="_blank" 
+                                                            className="text-blue-600 hover:text-blue-700 underline text-sm block mt-1"
+                                                        >
+                                                            {language === 'he' ? '🔒 קרא מדיניות פרטיות' : '🔒 Read Privacy Policy'}
+                                                        </a>
+                                                    </label>
+                                                </div>
+
+                                                {/* Authorization - Manager/Admin Only */}
+                                                {(userRole === 'admin' || userRole === 'manager') && (
+                                                    <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-300">
+                                                        <input
+                                                            type="checkbox"
+                                                            id="agree-authorized"
+                                                            checked={agreementChecks.authorized}
+                                                            onChange={(e) => setAgreementChecks({...agreementChecks, authorized: e.target.checked})}
+                                                            className="mt-1 w-5 h-5 cursor-pointer"
+                                                        />
+                                                        <label htmlFor="agree-authorized" className="flex-1 cursor-pointer">
+                                                            <span className="font-semibold text-slate-800">
+                                                                {language === 'he'
+                                                                    ? 'אני מורשה להשתמש במערכת זו'
+                                                                    : 'I am authorized to use this system'}
+                                                            </span>
+                                                            <p className="text-xs text-slate-600 mt-1">
+                                                                {language === 'he'
+                                                                    ? 'אני מאשר שיש לי הרשאה מבעל הבניין לנהל רישומי תשלומים'
+                                                                    : 'I confirm I have permission from the building owner to manage payment records'}
+                                                            </p>
+                                                        </label>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Buttons */}
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={handleAcceptAgreement}
+                                                    className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-lg transition-colors"
+                                                >
+                                                    {language === 'he' ? '✓ אני מסכים והמשך' : '✓ I Accept & Continue'}
+                                                </button>
+                                                <button
+                                                    onClick={handleDeclineAgreement}
+                                                    className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-lg transition-colors"
+                                                >
+                                                    {language === 'he' ? '✕ דחה' : '✕ Decline'}
+                                                </button>
+                                            </div>
+
+                                            {/* Warning */}
+                                            <p className="text-xs text-center text-slate-500 mt-4">
+                                                {language === 'he'
+                                                    ? 'לחיצה על "דחה" תנתק אותך מהמערכת'
+                                                    : 'Clicking "Decline" will log you out of the system'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Monthly Bills Section */}
                                 <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-4 sm:mb-6">

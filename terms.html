@@ -1,0 +1,403 @@
+<!--
+════════════════════════════════════════════════════════════════
+© 2025 VALERY LAVROV - ALL RIGHTS RESERVED
+Building Payment Tracker - Proprietary Software
+
+TRADE SECRET NOTICE:
+This software contains confidential and proprietary information
+protected under Israeli Trade Secret Law (Protection of Trade 
+Secrets Law, 5765-2005) and international copyright law.
+
+UNAUTHORIZED USE PROHIBITED:
+- Copying, modification, or reverse engineering is strictly forbidden
+- Sharing credentials or code constitutes breach of contract
+- Violators will be prosecuted under Israeli law
+
+Patent Pending: Business logic and pricing algorithms
+Author: Valery Lavrov
+Email: support@buildingtracker.com
+Last Updated: November 3, 2025
+════════════════════════════════════════════════════════════════
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- COPYRIGHT METADATA -->
+    <meta name="author" content="Valery Lavrov">
+    <meta name="copyright" content="© 2025 Valery Lavrov. All Rights Reserved.">
+    <meta name="description" content="Terms of Service - Building Payment Tracker">
+    <meta name="robots" content="index, follow">
+    
+    <title>Terms of Service - Building Payment Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        .rtl { direction: rtl; }
+        .ltr { direction: ltr; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div id="root"></div>
+    
+    <script>
+        let currentLang = 'he';
+        
+        const texts = {
+            en: {
+                title: "Terms of Service",
+                subtitle: "Building Payment Tracker",
+                lastUpdated: "Last Updated: November 3, 2025",
+                
+                sections: [
+                    {
+                        title: "1. Acceptance of Terms",
+                        content: `By accessing or using the Building Payment Tracker software ("Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, you may not use the Service.
+
+This Service is provided by Valery Lavrov ("Provider", "we", "us", "our"). The Service is a proprietary software solution designed for building managers to track resident payments.`
+                    },
+                    {
+                        title: "2. Intellectual Property Rights",
+                        content: `© 2025 Valery Lavrov. All Rights Reserved.
+
+The Service, including all software code, design, business logic, algorithms, and documentation, is proprietary and protected under Israeli and international copyright law.
+
+Trade Secret Protection: The core business logic, pricing algorithms, and technical implementations constitute confidential trade secrets under Israeli law (Protection of Trade Secrets Law, 5765-2005).
+
+You are granted a limited, non-exclusive, non-transferable license to use the Service solely for managing your building's payment records. This license does not grant you any ownership rights to the software.
+
+Prohibited Actions:
+• Copying, modifying, or reverse-engineering the software
+• Sharing login credentials with unauthorized users
+• Extracting or replicating the business logic
+• Creating derivative works based on the Service
+• Removing copyright notices or proprietary markings`
+                    },
+                    {
+                        title: "3. User Accounts and Responsibilities",
+                        content: `Account Security: You are responsible for maintaining the confidentiality of your login credentials. You agree to:
+• Use strong passwords and keep them secure
+• Notify us immediately of any unauthorized access
+• Accept responsibility for all activities under your account
+
+Manager Responsibilities: As a building manager using this Service, you agree to:
+• Provide accurate resident information
+• Maintain up-to-date payment records
+• Comply with local privacy and data protection laws
+• Use the Service only for legitimate building management purposes
+
+Resident Data: You acknowledge that you are the data controller for resident information entered into the Service. You must:
+• Obtain necessary consent from residents for data processing
+• Inform residents of their data rights
+• Comply with applicable data protection regulations`
+                    },
+                    {
+                        title: "4. Payment Terms",
+                        content: `Subscription Fees: The Service is provided on a subscription basis. Current pricing:
+• Basic Tier: Base fee + per-resident fee
+• Pro Tier: Base fee + per-resident fee + additional features
+• Enterprise Tier: Custom pricing
+
+Payment is due monthly in advance. Failure to pay may result in service suspension.
+
+Pricing Changes: We reserve the right to modify pricing with 30 days' notice. Continued use after price changes constitutes acceptance of new rates.
+
+Refund Policy: Subscription fees are non-refundable except as required by Israeli consumer protection law.`
+                    },
+                    {
+                        title: "5. Data and Privacy",
+                        content: `Data Ownership: You retain ownership of all resident data you input into the Service.
+
+Data Storage: All data is stored securely using Firebase (Google Cloud Platform) with servers located in Europe (GDPR-compliant region).
+
+Data Backup: We perform automatic weekly backups for administrative users. However, you are responsible for maintaining your own data backups.
+
+Data Deletion: Upon account termination, your data will be retained for 90 days for recovery purposes, then permanently deleted.
+
+Privacy Policy: Our detailed privacy practices are outlined in our Privacy Policy, which is incorporated by reference into these Terms.`
+                    },
+                    {
+                        title: "6. Service Availability and Support",
+                        content: `Service Level: We strive for 99% uptime but do not guarantee uninterrupted service. We are not liable for:
+• Temporary outages for maintenance
+• Third-party service disruptions (Firebase, hosting providers)
+• Internet connectivity issues
+
+Support: Support is provided via email during business hours (Sunday-Thursday, 9:00-17:00 Israel Time). Response time varies by subscription tier:
+• Basic: 48-72 hours
+• Pro: 24-48 hours
+• Enterprise: Priority support within 12 hours`
+                    },
+                    {
+                        title: "7. Limitation of Liability",
+                        content: `DISCLAIMER: THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED.
+
+To the maximum extent permitted by Israeli law:
+• We are not liable for any indirect, incidental, or consequential damages
+• Our total liability shall not exceed the amount you paid for the Service in the 12 months preceding the claim
+• We are not responsible for data loss due to user error or third-party failures
+
+Financial Accuracy: While we strive for accuracy, you are responsible for verifying all payment calculations and records. We are not liable for financial errors resulting from incorrect data entry.`
+                    },
+                    {
+                        title: "8. Termination",
+                        content: `You may terminate your account at any time by contacting us. We may terminate or suspend your account if:
+• You violate these Terms of Service
+• You fail to pay subscription fees
+• You engage in fraudulent or illegal activity
+• You misuse the Service in a way that harms other users
+
+Upon termination:
+• Your access to the Service will be immediately revoked
+• You will receive a final data export (upon request within 30 days)
+• All data will be permanently deleted after 90 days`
+                    },
+                    {
+                        title: "9. Governing Law and Jurisdiction",
+                        content: `These Terms are governed by Israeli law. Any disputes shall be resolved in the competent courts of Israel.
+
+Language: In case of any conflict between the English and Hebrew versions of these Terms, the Hebrew version shall prevail for Israeli users.`
+                    },
+                    {
+                        title: "10. Changes to Terms",
+                        content: `We reserve the right to modify these Terms at any time. Material changes will be notified via:
+• Email to your registered address
+• Prominent notice in the application
+• Updated "Last Modified" date on this page
+
+Continued use of the Service after changes constitutes acceptance of the modified Terms.`
+                    },
+                    {
+                        title: "11. Contact Information",
+                        content: `For questions about these Terms, please contact:
+
+Email: support@buildingtracker.com
+Business Name: Valery Lavrov (registered as עוסק פטור)
+Address: [To be provided upon business registration]
+
+For legal inquiries regarding intellectual property or trade secrets, please use the email above with subject line: "Legal - IP Inquiry"`
+                    }
+                ],
+                
+                backButton: "← Back to App",
+                switchLang: "עברית"
+            },
+            
+            he: {
+                title: "תנאי שימוש",
+                subtitle: "מערכת מעקב תשלומים לבניין",
+                lastUpdated: "עדכון אחרון: 3 בנובמבר 2025",
+                
+                sections: [
+                    {
+                        title: "1. קבלת התנאים",
+                        content: `בגישה או שימוש במערכת מעקב תשלומים לבניין ("השירות"), אתה מסכים להיות מחויב לתנאי שימוש אלה. אם אינך מסכים לתנאים אלה, אינך רשאי להשתמש בשירות.
+
+שירות זה מסופק על ידי ולרי לברוב ("הספק", "אנו", "שלנו"). השירות הינו פתרון תוכנה קנייני המיועד למנהלי בניינים למעקב אחר תשלומי דיירים.`
+                    },
+                    {
+                        title: "2. זכויות קניין רוחני",
+                        content: `© 2025 ולרי לברוב. כל הזכויות שמורות.
+
+השירות, לרבות כל קוד התוכנה, עיצוב, לוגיקה עסקית, אלגוריתמים ותיעוד, הינו קנייני ומוגן על פי חוק זכויות יוצרים הישראלי והבינלאומי.
+
+הגנת סוד מסחרי: הלוגיקה העסקית המרכזית, אלגוריתמי התמחור והיישום הטכני מהווים סודות מסחריים חסויים על פי החוק הישראלי (חוק הגנת סודות מסחריים, התשס"ה-2005).
+
+ניתן לך רישיון מוגבל, לא בלעדי, ולא ניתן להעברה לשימוש בשירות אך ורק לניהול רישומי תשלומים של הבניין שלך. רישיון זה אינו מעניק לך זכויות בעלות על התוכנה.
+
+פעולות אסורות:
+• העתקה, שינוי או הנדסה לאחור של התוכנה
+• שיתוף פרטי התחברות עם משתמשים לא מורשים
+• חילוץ או שכפול הלוגיקה העסקית
+• יצירת יצירות נגזרות המבוססות על השירות
+• הסרת הודעות זכויות יוצרים או סימני קניין`
+                    },
+                    {
+                        title: "3. חשבונות משתמש ואחריות",
+                        content: `אבטחת חשבון: אתה אחראי לשמירה על סודיות פרטי ההתחברות שלך. אתה מסכים:
+• להשתמש בסיסמאות חזקות ולשמור עליהן בטוחות
+• להודיע לנו מיד על כל גישה לא מורשית
+• לקבל אחריות על כל הפעילויות בחשבונך
+
+אחריות מנהל: כמנהל בניין המשתמש בשירות זה, אתה מסכים:
+• לספק מידע מדויק על הדיירים
+• לתחזק רישומי תשלומים מעודכנים
+• לציית לחוקי פרטיות והגנת מידע מקומיים
+• להשתמש בשירות רק למטרות ניהול בניין לגיטימיות
+
+נתוני דיירים: אתה מאשר שאתה בקר הנתונים עבור מידע דיירים המוזן למערכת. עליך:
+• לקבל הסכמה נדרשת מהדיירים לעיבוד נתונים
+• ליידע את הדיירים על זכויות הנתונים שלהם
+• לציית לתקנות הגנת מידע החלות`
+                    },
+                    {
+                        title: "4. תנאי תשלום",
+                        content: `דמי מנוי: השירות מסופק על בסיס מנוי. תמחור נוכחי:
+• רמה בסיסית: עמלה בסיסית + עמלה לדייר
+• רמה Pro: עמלה בסיסית + עמלה לדייר + תכונות נוספות
+• רמה Enterprise: תמחור מותאם אישית
+
+התשלום חייב מדי חודש מראש. אי תשלום עלול לגרום להשעיית השירות.
+
+שינויי תמחור: אנו שומרים לעצמנו את הזכות לשנות את התמחור בהודעה של 30 יום. המשך שימוש לאחר שינויי מחיר מהווה קבלה של התעריפים החדשים.
+
+מדיניות החזרים: דמי המנוי אינם ניתנים להחזר אלא כנדרש על פי חוק הגנת הצרכן הישראלי.`
+                    },
+                    {
+                        title: "5. נתונים ופרטיות",
+                        content: `בעלות נתונים: אתה שומר על בעלות על כל נתוני הדיירים שאתה מזין למערכת.
+
+אחסון נתונים: כל הנתונים מאוחסנים בצורה מאובטחת באמצעות Firebase (Google Cloud Platform) עם שרתים הממוקמים באירופה (אזור תואם GDPR).
+
+גיבוי נתונים: אנו מבצעים גיבויים אוטומטיים שבועיים עבור משתמשי אדמין. עם זאת, אתה אחראי לתחזק גיבויי נתונים משלך.
+
+מחיקת נתונים: עם סיום חשבון, הנתונים שלך יישמרו למשך 90 יום למטרות שחזור, ולאחר מכן יימחקו לצמיתות.
+
+מדיניות פרטיות: נהלי הפרטיות המפורטים שלנו מתוארים במדיניות הפרטיות שלנו, המשולבת בהפניה בתנאים אלה.`
+                    },
+                    {
+                        title: "6. זמינות שירות ותמיכה",
+                        content: `רמת שירות: אנו שואפים ל-99% זמן פעילות אך איננו מבטיחים שירות ללא הפסקות. איננו אחראים ל:
+• הפסקות זמניות לתחזוקה
+• הפרעות שירות צד שלישי (Firebase, ספקי אירוח)
+• בעיות קישוריות אינטרנט
+
+תמיכה: תמיכה ניתנת באמצעות דוא"ל במהלך שעות העבודה (ראשון-חמישי, 9:00-17:00 שעון ישראל). זמן תגובה משתנה לפי רמת מנוי:
+• בסיסי: 48-72 שעות
+• Pro: 24-48 שעות
+• Enterprise: תמיכה עדיפה תוך 12 שעות`
+                    },
+                    {
+                        title: "7. הגבלת אחריות",
+                        content: `כתב ויתור: השירות מסופק "כמות שהוא" ללא אחריות מכל סוג, מפורשת או משתמעת.
+
+במידה המרבית המותרת על פי החוק הישראלי:
+• איננו אחראים לנזקים עקיפים, מקריים או תוצאתיים
+• האחריות הכוללת שלנו לא תעלה על הסכום ששילמת עבור השירות ב-12 החודשים שקדמו לתביעה
+• איננו אחראים לאובדן נתונים עקב שגיאת משתמש או כשלי צד שלישי
+
+דיוק פיננסי: למרות שאנו שואפים לדיוק, אתה אחראי לאימות כל חישובי ורישומי התשלומים. איננו אחראים לטעויות פיננסיות הנובעות מהזנת נתונים שגויה.`
+                    },
+                    {
+                        title: "8. סיום",
+                        content: `אתה יכול לסיים את חשבונך בכל עת על ידי יצירת קשר איתנו. אנו עשויים לסיים או להשעות את חשבונך אם:
+• אתה מפר את תנאי השימוש הללו
+• אתה לא משלם דמי מנוי
+• אתה עוסק בפעילות הונאה או בלתי חוקית
+• אתה משתמש לרעה בשירות באופן שפוגע במשתמשים אחרים
+
+עם סיום:
+• הגישה שלך לשירות תישלל מיד
+• תקבל ייצוא נתונים סופי (לפי בקשה תוך 30 יום)
+• כל הנתונים יימחקו לצמיתות לאחר 90 יום`
+                    },
+                    {
+                        title: "9. דין וסמכות שיפוט",
+                        content: `תנאים אלה כפופים לחוק הישראלי. כל המחלוקות ייפתרו בבתי המשפט המוסמכים בישראל.
+
+שפה: במקרה של סתירה כלשהי בין הגרסה האנגלית והעברית של תנאים אלה, הגרסה העברית תגבר עבור משתמשים ישראלים.`
+                    },
+                    {
+                        title: "10. שינויים בתנאים",
+                        content: `אנו שומרים לעצמנו את הזכות לשנות את התנאים הללו בכל עת. שינויים מהותיים יימסרו באמצעות:
+• דוא"ל לכתובתך הרשומה
+• הודעה בולטת באפליקציה
+• תאריך "שונה לאחרונה" מעודכן בדף זה
+
+המשך שימוש בשירות לאחר שינויים מהווה קבלה של התנאים המתוקנים.`
+                    },
+                    {
+                        title: "11. פרטי יצירת קשר",
+                        content: `לשאלות לגבי תנאים אלה, אנא צור קשר:
+
+דוא"ל: support@buildingtracker.com
+שם עסק: ולרי לברוב (רשום כעוסק פטור)
+כתובת: [תסופק עם רישום העסק]
+
+לפניות משפטיות בנוגע לקניין רוחני או סודות מסחריים, אנא השתמש בדוא"ל לעיל עם שורת נושא: "Legal - IP Inquiry"`
+                    }
+                ],
+                
+                backButton: "→ חזרה לאפליקציה",
+                switchLang: "English"
+            }
+        };
+        
+        function render() {
+            const t = texts[currentLang];
+            const isRTL = currentLang === 'he';
+            
+            document.getElementById('root').innerHTML = `
+                <div class="${isRTL ? 'rtl' : 'ltr'} max-w-4xl mx-auto p-4 sm:p-8">
+                    <div class="bg-white rounded-lg shadow-lg p-6 sm:p-8 mb-6">
+                        <!-- Header -->
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h1 class="text-3xl sm:text-4xl font-bold text-slate-800 mb-2">${t.title}</h1>
+                                <p class="text-slate-600">${t.subtitle}</p>
+                                <p class="text-sm text-slate-500 mt-2">${t.lastUpdated}</p>
+                            </div>
+                            <button onclick="toggleLanguage()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
+                                ${t.switchLang}
+                            </button>
+                        </div>
+                        
+                        <!-- Copyright Notice -->
+                        <div class="bg-red-50 border-2 border-red-500 rounded-lg p-4 mb-6">
+                            <p class="text-red-900 font-bold text-center">
+                                © 2025 Valery Lavrov. All Rights Reserved.
+                            </p>
+                            <p class="text-red-800 text-sm text-center mt-1">
+                                Proprietary Software - Protected by Israeli Trade Secret Law
+                            </p>
+                        </div>
+
+                        <!-- Legal Notice - Hebrew Prevails -->
+                        <div class="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-6">
+                            <p class="text-yellow-900 font-bold text-center">
+                                {language === 'he' ? '📜 הודעה משפטית' : '📜 Legal Notice'}
+                            </p>
+                            <p class="text-yellow-800 text-sm text-center mt-1">
+                                {language === 'he' 
+                                    ? 'במקרה של סתירה בין הגרסה העברית לגרסה האנגלית, הגרסה העברית תהיה המחייבת והקובעת על פי החוק הישראלי.'
+                                    : 'In case of conflict between Hebrew and English versions, the Hebrew version shall prevail under Israeli law.'}
+                            </p>
+                        </div>
+                        
+                        <!-- Sections -->
+                        ${t.sections.map(section => `
+                            <div class="mb-8">
+                                <h2 class="text-xl sm:text-2xl font-bold text-slate-800 mb-3">${section.title}</h2>
+                                <div class="text-slate-700 leading-relaxed whitespace-pre-line">${section.content}</div>
+                            </div>
+                        `).join('')}
+                        
+                        <!-- Back Button -->
+                        <div class="mt-8 pt-6 border-t border-slate-200">
+                            <a href="index.html" class="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                                ${t.backButton}
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div class="text-center text-xs text-slate-500 mb-8">
+                        <p>© 2025 Valery Lavrov. All Rights Reserved.</p>
+                        <p class="mt-1">This document is legally binding and protected under Israeli law.</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'he' : 'en';
+            render();
+        }
+        
+        // Initial render
+        render();
+    </script>
+</body>
+</html>

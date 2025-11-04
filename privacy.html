@@ -1,0 +1,577 @@
+<!--
+════════════════════════════════════════════════════════════════
+© 2025 VALERY LAVROV - ALL RIGHTS RESERVED
+Building Payment Tracker - Proprietary Software
+
+TRADE SECRET NOTICE:
+This software contains confidential and proprietary information
+protected under Israeli Trade Secret Law (Protection of Trade 
+Secrets Law, 5765-2005) and international copyright law.
+
+UNAUTHORIZED USE PROHIBITED:
+- Copying, modification, or reverse engineering is strictly forbidden
+- Sharing credentials or code constitutes breach of contract
+- Violators will be prosecuted under Israeli law
+
+Patent Pending: Business logic and pricing algorithms
+Author: Valery Lavrov
+Email: support@buildingtracker.com
+Last Updated: November 3, 2025
+════════════════════════════════════════════════════════════════
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- COPYRIGHT METADATA -->
+    <meta name="author" content="Valery Lavrov">
+    <meta name="copyright" content="© 2025 Valery Lavrov. All Rights Reserved.">
+    <meta name="description" content="Privacy Policy - Building Payment Tracker">
+    <meta name="robots" content="index, follow">
+    
+    <title>Privacy Policy - Building Payment Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        .rtl { direction: rtl; }
+        .ltr { direction: ltr; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div id="root"></div>
+    
+    <script>
+        let currentLang = 'he';
+        
+        const texts = {
+            en: {
+                title: "Privacy Policy",
+                subtitle: "Building Payment Tracker",
+                lastUpdated: "Last Updated: November 3, 2025",
+                
+                sections: [
+                    {
+                        title: "1. Introduction",
+                        content: `This Privacy Policy explains how Valery Lavrov ("we", "us", "our") collects, uses, and protects your personal information when you use the Building Payment Tracker service.
+
+We are committed to protecting your privacy and complying with applicable data protection laws, including Israeli Privacy Protection Law (1981) and GDPR principles where applicable.
+
+Data Controller: The building manager using our service is the data controller for resident information. We act as a data processor providing the software platform.`
+                    },
+                    {
+                        title: "2. Information We Collect",
+                        content: `Manager Account Information:
+• Email address or username
+• Password (encrypted)
+• Building name and address
+• Subscription and payment information
+
+Resident Data (Entered by Manager):
+• Apartment numbers
+• Payment status (paid/unpaid)
+• Payment dates and amounts
+• Optional: Resident names (if manager chooses to record them)
+
+Technical Data:
+• IP address (for security purposes)
+• Browser type and version
+• Login timestamps
+• Device information
+
+We do NOT collect:
+• Government-issued ID numbers
+• Bank account details
+• Social security numbers
+• Personal correspondence beyond the system`
+                    },
+                    {
+                        title: "3. How We Use Your Information",
+                        content: `We use the collected information for:
+
+Service Provision:
+• Authenticating user logins
+• Displaying payment tracking dashboards
+• Generating payment reports
+• Sending service notifications
+
+Security and Compliance:
+• Preventing unauthorized access
+• Detecting fraudulent activity
+• Complying with legal obligations
+• Maintaining backup records
+
+Service Improvement:
+• Analyzing usage patterns (aggregated, anonymized data only)
+• Identifying bugs and technical issues
+• Developing new features based on user needs
+
+We do NOT:
+• Sell your data to third parties
+• Use your data for advertising purposes
+• Share resident data with other buildings/managers
+• Access your data without permission (except for technical support when authorized)`
+                    },
+                    {
+                        title: "4. Data Storage and Security",
+                        content: `Storage Location:
+All data is stored on Firebase (Google Cloud Platform) servers located in Europe (Belgium region), ensuring GDPR compliance.
+
+Security Measures:
+• End-to-end encryption for data transmission (HTTPS/SSL)
+• Encrypted password storage (Firebase Authentication)
+• Role-based access control (Admin, Manager, Resident roles)
+• Automatic logout after inactivity
+• Regular security audits and updates
+
+Backup System:
+• Weekly automatic backups for admin accounts
+• Backups stored for 90 days
+• Secure backup access (admin-only)
+
+Despite our security measures, no internet transmission is 100% secure. You use the service at your own risk.`
+                    },
+                    {
+                        title: "5. Data Sharing and Third Parties",
+                        content: `We share data only with:
+
+Essential Service Providers:
+• Firebase/Google Cloud (data hosting) - GDPR compliant
+• Payment processors (if/when implemented) - PCI-DSS compliant
+• Email service providers (for notifications)
+
+Legal Requirements:
+We may disclose data if required by:
+• Court orders or legal processes
+• Israeli law enforcement authorities
+• Protection of our rights and property
+• Emergency situations involving safety
+
+We do NOT share data with:
+• Marketing companies
+• Data brokers
+• Other buildings or property management companies
+• Social media platforms`
+                    },
+                    {
+                        title: "6. Your Data Rights",
+                        content: `As a Manager or Resident, you have the right to:
+
+Access: Request a copy of all personal data we hold about you
+
+Correction: Update incorrect or incomplete information
+
+Deletion: Request deletion of your data (subject to legal retention requirements)
+
+Portability: Receive your data in a machine-readable format (JSON export)
+
+Objection: Object to certain data processing activities
+
+Restriction: Request limited processing of your data
+
+Withdrawal of Consent: Revoke consent for data processing (may affect service availability)
+
+To exercise these rights, contact us at: support@buildingtracker.com
+
+Response Time: We will respond to requests within 30 days.
+
+Resident-Specific Rights:
+If you are a resident and your building manager is using this service, you have the right to:
+• Know what information is stored about you
+• Request your manager delete your information
+• Opt-out of payment status visibility (where privacy settings allow)`
+                    },
+                    {
+                        title: "7. Data Retention",
+                        content: `Active Accounts:
+Data is retained as long as your account remains active.
+
+Account Termination:
+• Data retained for 90 days for potential account recovery
+• Permanent deletion after 90 days (except as required by law)
+• Export available upon request within 30 days of termination
+
+Legal Requirements:
+Financial records may be retained for 7 years as required by Israeli tax law.
+
+Backup Data:
+Deleted data is removed from backups during the next backup cycle (within 7 days).`
+                    },
+                    {
+                        title: "8. Cookies and Tracking",
+                        content: `We use minimal cookies and local storage:
+
+Essential Cookies (Cannot be disabled):
+• Authentication tokens (login session)
+• Language preference
+• User role (admin/manager/resident)
+
+These are necessary for the service to function and are stored locally in your browser.
+
+We do NOT use:
+• Third-party advertising cookies
+• Analytics cookies (Google Analytics, etc.)
+• Social media tracking pixels
+• Cross-site tracking
+
+Local Storage Limitations:
+Our application works within the limitations of browser security. We do NOT use localStorage for sensitive data - all critical information is stored securely in Firebase.`
+                    },
+                    {
+                        title: "9. Children's Privacy",
+                        content: `This service is NOT intended for children under 18.
+
+We do not knowingly collect data from minors. If you believe a minor's data has been entered:
+• Contact us immediately at support@buildingtracker.com
+• We will delete the data within 72 hours
+
+Parental Responsibility: If a minor resides in a managed building, the parent/guardian is responsible for any data the building manager records.`
+                    },
+                    {
+                        title: "10. International Data Transfers",
+                        content: `Primary Storage: Europe (GDPR-compliant region via Firebase)
+
+Israeli Users: Your data is protected under Israeli Privacy Protection Law
+
+Data Export: If you are located outside Israel/EU, your data may be transferred internationally. We ensure adequate protection through:
+• Standard contractual clauses
+• GDPR-compliant service providers
+• Encryption in transit and at rest
+
+You have the right to object to international transfers by discontinuing service use.`
+                    },
+                    {
+                        title: "11. Changes to This Policy",
+                        content: `We may update this Privacy Policy to reflect:
+• Changes in legal requirements
+• New features or services
+• Enhanced security measures
+
+Notification of Changes:
+• Email notification to all managers
+• Prominent notice in the application
+• Updated "Last Modified" date on this page
+
+Material changes require your explicit consent to continue using the service.`
+                    },
+                    {
+                        title: "12. Contact Us",
+                        content: `Data Protection Officer: Valery Lavrov
+
+For privacy concerns or data requests:
+Email: support@buildingtracker.com
+Subject Line: "Privacy Request"
+
+Response Time: 30 days
+
+Complaints:
+If you believe your data rights have been violated, you may file a complaint with:
+• Israeli Privacy Protection Authority (רשות הגנת הפרטיות)
+• EU Data Protection Authority (if you are in the EU)
+
+We will cooperate fully with regulatory authorities.`
+                    }
+                ],
+                
+                backButton: "← Back to App",
+                switchLang: "עברית"
+            },
+            
+            he: {
+                title: "מדיניות פרטיות",
+                subtitle: "מערכת מעקב תשלומים לבניין",
+                lastUpdated: "עדכון אחרון: 3 בנובמבר 2025",
+                
+                sections: [
+                    {
+                        title: "1. מבוא",
+                        content: `מדיניות פרטיות זו מסבירה כיצד ולרי לברוב ("אנחנו", "שלנו") אוספים, משתמשים ומגנים על המידע האישי שלך בעת השימוש בשירות מעקב תשלומים לבניין.
+
+אנו מחויבים להגן על פרטיותך ולעמוד בדיני הגנת מידע החלים, לרבות חוק הגנת הפרטיות הישראלי (1981) ועקרונות GDPR כאשר רלוונטי.
+
+בקר נתונים: מנהל הבניין המשתמש בשירות שלנו הוא בקר הנתונים עבור מידע דיירים. אנו פועלים כמעבד נתונים המספק את פלטפורמת התוכנה.`
+                    },
+                    {
+                        title: "2. מידע שאנו אוספים",
+                        content: `מידע חשבון מנהל:
+• כתובת דוא"ל או שם משתמש
+• סיסמה (מוצפנת)
+• שם ו כתובת בניין
+• מידע מנוי ותשלום
+
+נתוני דיירים (מוזנים על ידי המנהל):
+• מספרי דירות
+• סטטוס תשלום (שולם/לא שולם)
+• תאריכי תשלום וסכומים
+• אופציונלי: שמות דיירים (אם המנהל בוחר לרשום אותם)
+
+נתונים טכניים:
+• כתובת IP (למטרות אבטחה)
+• סוג ודרסה דפדפן
+• חותמות זמן התחברות
+• מידע מכשיר
+
+אנו לא אוספים:
+• מספרי תעודת זהות ממשלתיים
+• פרטי חשבון בנק
+• מספרי ביטוח לאומי
+• התכתבויות אישיות מעבר למערכת`
+                    },
+                    {
+                        title: "3. כיצד אנו משתמשים במידע שלך",
+                        content: `אנו משתמשים במידע שנאסף עבור:
+
+אספקת שירות:
+• אימות התחברויות משתמש
+• הצגת לוחות מחוונים למעקב תשלומים
+• יצירת דוחות תשלום
+• שליחת התראות שירות
+
+אבטחה ותאימות:
+• מניעת גישה לא מורשית
+• זיהוי פעילות הונאה
+• עמידה בחובות חוקיות
+• תחזוקת רישומי גיבוי
+
+שיפור שירות:
+• ניתוח דפוסי שימוש (נתונים מצטברים ואנונימיים בלבד)
+• זיהוי באגים ובעיות טכניות
+• פיתוח תכונות חדשות על בסיס צרכי משתמשים
+
+אנו לא:
+• מוכרים את הנתונים שלך לצדדים שלישיים
+• משתמשים בנתונים שלך למטרות פרסום
+• משתפים נתוני דיירים עם בניינים/מנהלים אחרים
+• ניגשים לנתונים שלך ללא רשות (מלבד תמיכה טכנית כאשר מורשה)`
+                    },
+                    {
+                        title: "4. אחסון נתונים ואבטחה",
+                        content: `מיקום אחסון:
+כל הנתונים מאוחסנים בשרתי Firebase (Google Cloud Platform) הממוקמים באירופה (אזור בלגיה), מבטיחים תאימות GDPR.
+
+אמצעי אבטחה:
+• הצפנה מקצה לקצה להעברת נתונים (HTTPS/SSL)
+• אחסון סיסמאות מוצפנות (Firebase Authentication)
+• בקרת גישה מבוססת תפקיד (תפקידי אדמין, מנהל, דייר)
+• התנתקות אוטומטית לאחר חוסר פעילות
+• ביקורות ועדכוני אבטחה קבועים
+
+מערכת גיבוי:
+• גיבויים אוטומטיים שבועיים עבור חשבונות אדמין
+• גיבויים נשמרים למשך 90 יום
+• גישה מאובטחת לגיבוי (אדמין בלבד)
+
+למרות אמצעי האבטחה שלנו, אף העברת אינטרנט אינה 100% מאובטחת. אתה משתמש בשירות על אחריותך.`
+                    },
+                    {
+                        title: "5. שיתוף נתונים וצדדים שלישיים",
+                        content: `אנו משתפים נתונים רק עם:
+
+ספקי שירות חיוניים:
+• Firebase/Google Cloud (אירוח נתונים) - תואם GDPR
+• מעבדי תשלום (אם/כאשר יוטמע) - תואם PCI-DSS
+• ספקי שירות דוא"ל (להתראות)
+
+דרישות חוקיות:
+אנו עשויים לחשוף נתונים אם נדרש על ידי:
+• צווי בית משפט או הליכים משפטיים
+• רשויות אכיפת החוק הישראליות
+• הגנה על זכויותינו ורכושנו
+• מצבי חירום הכוללים בטיחות
+
+אנו לא משתפים נתונים עם:
+• חברות שיווק
+• מתווכי נתונים
+• בניינים אחרים או חברות ניהול נכסים
+• פלטפורמות מדיה חברתית`
+                    },
+                    {
+                        title: "6. זכויות הנתונים שלך",
+                        content: `כמנהל או דייר, יש לך את הזכות:
+
+גישה: לבקש עותק של כל הנתונים האישיים שאנו מחזיקים עליך
+
+תיקון: לעדכן מידע שגוי או לא שלם
+
+מחיקה: לבקש מחיקת הנתונים שלך (בכפוף לדרישות שמירה חוקיות)
+
+ניידות: לקבל את הנתונים שלך בפורמט קריא מכונה (ייצוא JSON)
+
+התנגדות: להתנגד לפעילויות עיבוד נתונים מסוימות
+
+הגבלה: לבקש עיבוד מוגבל של הנתונים שלך
+
+ביטול הסכמה: לבטל הסכמה לעיבוד נתונים (עשוי להשפיע על זמינות השירות)
+
+כדי לממש זכויות אלה, צור קשר בכתובת: support@buildingtracker.com
+
+זמן תגובה: נגיב לבקשות תוך 30 יום.
+
+זכויות ספציפיות לדייר:
+אם אתה דייר ומנהל הבניין שלך משתמש בשירות זה, יש לך זכות:
+• לדעת איזה מידע מאוחסן עליך
+• לבקש מהמנהל שלך למחוק את המידע שלך
+• לבחור שלא להציג את סטטוס התשלום (כאשר הגדרות הפרטיות מאפשרות)`
+                    },
+                    {
+                        title: "7. שמירת נתונים",
+                        content: `חשבונות פעילים:
+נתונים נשמרים כל עוד חשבונך נשאר פעיל.
+
+סיום חשבון:
+• נתונים נשמרים למשך 90 יום לשחזור חשבון פוטנציאלי
+• מחיקה קבועה לאחר 90 יום (למעט כנדרש על פי חוק)
+• ייצוא זמין לפי בקשה תוך 30 יום מהסיום
+
+דרישות חוקיות:
+רישומים פיננסיים עשויים להישמר למשך 7 שנים כנדרש על פי חוק המס הישראלי.
+
+נתוני גיבוי:
+נתונים שנמחקו מוסרים מגיבויים במהלך מחזור הגיבוי הבא (תוך 7 ימים).`
+                    },
+                    {
+                        title: "8. קובצי Cookie ומעקב",
+                        content: `אנו משתמשים במינימום cookies ואחסון מקומי:
+
+קובצי Cookie חיוניים (לא ניתן להשבית):
+• אסימוני אימות (סשן התחברות)
+• העדפת שפה
+• תפקיד משתמש (אדמין/מנהל/דייר)
+
+אלה נחוצים לתפקוד השירות ומאוחסנים מקומית בדפדפן שלך.
+
+אנו לא משתמשים:
+• קובצי cookie של פרסום צד שלישי
+• קובצי cookie אנליטיים (Google Analytics, וכו')
+• פיקסלים למעקב מדיה חברתית
+• מעקב חוצה אתרים
+
+מגבלות אחסון מקומי:
+האפליקציה שלנו עובדת במסגרת המגבלות של אבטחת דפדפן. אנו לא משתמשים ב-localStorage לנתונים רגישים - כל המידע הקריטי מאוחסן בצורה מאובטחת ב-Firebase.`
+                    },
+                    {
+                        title: "9. פרטיות ילדים",
+                        content: `שירות זה לא מיועד לילדים מתחת לגיל 18.
+
+אנו לא אוספים במודע נתונים מקטינים. אם אתה מאמין שנתוני קטין הוזנו:
+• צור קשר מיד ב-support@buildingtracker.com
+• נמחק את הנתונים תוך 72 שעות
+
+אחריות הורית: אם קטין מתגורר בבניין מנוהל, ההורה/אפוטרופוס אחראי לכל נתון שמנהל הבניין רושם.`
+                    },
+                    {
+                        title: "10. העברות נתונים בינלאומיות",
+                        content: `אחסון ראשוני: אירופה (אזור תואם GDPR דרך Firebase)
+
+משתמשים ישראלים: הנתונים שלך מוגנים תחת חוק הגנת הפרטיות הישראלי
+
+ייצוא נתונים: אם אתה נמצא מחוץ לישראל/האיחוד האירופי, הנתונים שלך עשויים להיות מועברים בינלאומית. אנו מבטיחים הגנה נאותה באמצעות:
+• סעיפים חוזיים סטנדרטיים
+• ספקי שירות תואמי GDPR
+• הצפנה בהעברה ובמנוחה
+
+יש לך זכות להתנגד להעברות בינלאומיות על ידי הפסקת שימוש בשירות.`
+                    },
+                    {
+                        title: "11. שינויים במדיניות זו",
+                        content: `אנו עשויים לעדכן את מדיניות פרטיות זו כדי לשקף:
+• שינויים בדרישות החוק
+• תכונות או שירותים חדשים
+• אמצעי אבטחה משופרים
+
+הודעה על שינויים:
+• הודעה בדוא"ל לכל המנהלים
+• הודעה בולטת באפליקציה
+• תאריך "שונה לאחרונה" מעודכן בדף זה
+
+שינויים מהותיים דורשים את הסכמתך המפורשת להמשיך להשתמש בשירות.`
+                    },
+                    {
+                        title: "12. צור קשר",
+                        content: `קצין הגנת מידע: ולרי לברוב
+
+לחששות פרטיות או בקשות נתונים:
+דוא"ל: support@buildingtracker.com
+שורת נושא: "Privacy Request"
+
+זמן תגובה: 30 יום
+
+תלונות:
+אם אתה מאמין שזכויות הנתונים שלך הופרו, אתה יכול להגיש תלונה ב:
+• רשות הגנת הפרטיות הישראלית
+• רשות הגנת מידע של האיחוד האירופי (אם אתה באיחוד האירופי)
+
+נשתף פעולה באופן מלא עם רשויות רגולטוריות.`
+                    }
+                ],
+                
+                backButton: "→ חזרה לאפליקציה",
+                switchLang: "English"
+            }
+        };
+        
+        function render() {
+            const t = texts[currentLang];
+            const isRTL = currentLang === 'he';
+            
+            document.getElementById('root').innerHTML = `
+                <div class="${isRTL ? 'rtl' : 'ltr'} max-w-4xl mx-auto p-4 sm:p-8">
+                    <div class="bg-white rounded-lg shadow-lg p-6 sm:p-8 mb-6">
+                        <!-- Header -->
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h1 class="text-3xl sm:text-4xl font-bold text-slate-800 mb-2">${t.title}</h1>
+                                <p class="text-slate-600">${t.subtitle}</p>
+                                <p class="text-sm text-slate-500 mt-2">${t.lastUpdated}</p>
+                            </div>
+                            <button onclick="toggleLanguage()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
+                                ${t.switchLang}
+                            </button>
+                        </div>
+                        
+                        <!-- GDPR Compliance Badge -->
+                        <div class="bg-blue-50 border-2 border-blue-500 rounded-lg p-4 mb-6">
+                            <p class="text-blue-900 font-bold text-center">
+                                🛡️ GDPR Compliant - Data Stored in EU (Belgium)
+                            </p>
+                            <p class="text-blue-800 text-sm text-center mt-1">
+                                Protected under Israeli Privacy Protection Law & GDPR
+                            </p>
+                        </div>
+                        
+                        <!-- Sections -->
+                        ${t.sections.map(section => `
+                            <div class="mb-8">
+                                <h2 class="text-xl sm:text-2xl font-bold text-slate-800 mb-3">${section.title}</h2>
+                                <div class="text-slate-700 leading-relaxed whitespace-pre-line">${section.content}</div>
+                            </div>
+                        `).join('')}
+                        
+                        <!-- Back Button -->
+                        <div class="mt-8 pt-6 border-t border-slate-200">
+                            <a href="index.html" class="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                                ${t.backButton}
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div class="text-center text-xs text-slate-500 mb-8">
+                        <p>© 2025 Valery Lavrov. All Rights Reserved.</p>
+                        <p class="mt-1">Your privacy is protected by law. Contact us for any concerns.</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'he' : 'en';
+            render();
+        }
+        
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
