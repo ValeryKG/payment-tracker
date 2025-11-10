@@ -1,0 +1,34 @@
+{
+  "buildingData": {
+    "buildingSettings": {
+      "apartmentCount": 17,
+      "buildingName": "Demo Building 1",
+      "address": "123 Demo Street, Tel Aviv",
+      "currency": "NIS",
+      "privacyTier": "tier1",
+      "setupComplete": true,
+      "locked": false
+    },
+    "monthlyBills": {
+      "2025-11": {
+        "1": { "paid": true },
+        "2": { "paid": true },
+        "3": { "paid": false },
+        "4": { "paid": true },
+        "5": { "paid": false },
+        "6": { "paid": true },
+        "7": { "paid": true },
+        "8": { "paid": false },
+        "9": { "paid": true },
+        "10": { "paid": false },
+        "11": { "paid": true },
+        "12": { "paid": true },
+        "13": { "paid": false },
+        "14": { "paid": true },
+        "15": { "paid": false },
+        "16": { "paid": true },
+        "17": { "paid": false }
+      }
+    }
+  }
+}
