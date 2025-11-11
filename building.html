@@ -34,7 +34,7 @@ Last Updated: November 3, 2025
     <meta property="og:title" content="Building Payment Tracker">
     <meta property="og:description" content="© 2025 Valery Lavrov - Proprietary Software">
 
-<title>Building Payment Tracker - Loading...</title>
+    <title>Building Payment Tracker - Loading...</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -63,8 +63,8 @@ Last Updated: November 3, 2025
     <div id="root"></div>
 
     <script type="text/babel">
-        
-const { useState, useEffect } = React;
+
+        const { useState, useEffect } = React;
 
         // ===== STEP 1: GET BUILDING ID FROM URL =====
         const urlParams = new URLSearchParams(window.location.search);
@@ -86,15 +86,15 @@ const { useState, useEffect } = React;
             appId: "1:395782765837:web:0775960f26a558d3e5c444"
         };
 
-// Initialize Dashboard Firebase (default app, reuse auth session)
-if (!firebase.apps.length) {
-    firebase.initializeApp(dashboardConfig);
-}
-const dashboardApp = firebase.app();
-const dashboardDb = dashboardApp.database();
+        // Initialize Dashboard Firebase (default app, reuse auth session)
+        if (!firebase.apps.length) {
+            firebase.initializeApp(dashboardConfig);
+        }
+        const dashboardApp = firebase.app();
+        const dashboardDb = dashboardApp.database();
 
 
-// ===== STEP 3: LOAD BUILDING CONFIG AND CONNECT TO BUILDING FIREBASE =====
+        // ===== STEP 3: LOAD BUILDING CONFIG AND CONNECT TO BUILDING FIREBASE =====
         let buildingApp = null;
         let database = null;
         let auth = null;
@@ -102,11 +102,26 @@ const dashboardDb = dashboardApp.database();
 
         (async function initBuilding() {
             console.log('Init building started, buildingId:', buildingId);
-            
-try {
+
+            try {
                 console.log('Checking authentication...');
 
-                console.log('Skipping dashboard auth check, will authenticate in building Firebase');
+                // Wait for auth state from dashboard (persisted from admin.html)
+                const currentUser = await new Promise((resolve) => {
+                    const unsubscribe = dashboardApp.auth().onAuthStateChanged(user => {
+                        unsubscribe();
+                        resolve(user);
+                    });
+                });
+
+                if (!currentUser) {
+                    console.log('Not authenticated, redirecting to index.html');
+                    alert('Please login first');
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                console.log('User authenticated:', currentUser.email);
 
                 // Load building config from dashboard
                 console.log('Loading building config for:', buildingId);
@@ -123,10 +138,10 @@ try {
 
                 // ===== CACHE CLEANUP (CRITICAL!) =====
                 const previousBuildingId = localStorage.getItem('currentBuildingId');
-                
+
                 if (previousBuildingId && previousBuildingId !== buildingId) {
                     console.log('Switching from', previousBuildingId, 'to', buildingId);
-                    
+
                     // Clear old building-specific data
                     Object.keys(localStorage).forEach(key => {
                         if (key.startsWith(previousBuildingId + '_')) {
@@ -140,14 +155,14 @@ try {
 
                 // ===== CONNECT TO BUILDING FIREBASE =====
                 const buildingFirebaseConfig = buildingConfig.firebaseConfig;
-                
+
                 console.log('Connecting to building Firebase...');
                 buildingApp = firebase.initializeApp(buildingFirebaseConfig, 'building-' + buildingId);
                 database = buildingApp.database();
                 auth = buildingApp.auth();
 
                 console.log('Connected to building:', buildingConfig.buildingName);
-                
+
                 // Store building info globally
                 window.currentBuilding = {
                     id: buildingId,
@@ -2095,27 +2110,27 @@ try {
                                                                 </button>
                                                             )}
                                                         </>
-                                                   )}
-{userRole === 'admin' && (
-    <a
-        href="admin.html"
-        className="px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center gap-1"
-    >
-        🔧 System Admin
-    </a>
-)}
-<button
-    onClick={() => {
-        setIsAuthenticated(false);
-        setUserRole(null);
-        setShowAdminPanel(false);
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('userRole');
-    }}
-    className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs sm:text-sm font-medium transition-colors"
->
-    {t.logout}
-</button>
+                                                    )}
+                                                    {userRole === 'admin' && (
+                                                        <a
+                                                            href="admin.html"
+                                                            className="px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center gap-1"
+                                                        >
+                                                            🔧 System Admin
+                                                        </a>
+                                                    )}
+                                                    <button
+                                                        onClick={() => {
+                                                            setIsAuthenticated(false);
+                                                            setUserRole(null);
+                                                            setShowAdminPanel(false);
+                                                            localStorage.removeItem('isAuthenticated');
+                                                            localStorage.removeItem('userRole');
+                                                        }}
+                                                        className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs sm:text-sm font-medium transition-colors"
+                                                    >
+                                                        {t.logout}
+                                                    </button>
 
                                                 </>
                                             ) : (
@@ -4023,9 +4038,9 @@ try {
             );
         };
 
-// Don't render React until Firebase is ready
-        window.renderApp = function() {
-            ReactDOM.render(<App />, document.getElementById('root'));
+        // Don't render React until Firebase is ready
+        window.renderApp = function () {
+            ReactDOM.render(<PaymentTracker />, document.getElementById('root'));
         };
     </script>
 </body>
