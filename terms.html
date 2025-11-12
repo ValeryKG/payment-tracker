@@ -1,4 +1,13 @@
 <!--
+==============================================================
+BUILDING PAYMENT TRACKER - TERMS & CONDITIONS (Static Page)
+Author: Valery Lavrov
+Purpose: Terms of Service | Bilingual (EN/HE) | Tailwind UI
+Last Updated: 2025-11-12
+==============================================================
+-->
+
+<!--
 ════════════════════════════════════════════════════════════════
 © 2025 VALERY LAVROV - ALL RIGHTS RESERVED
 Building Payment Tracker - Proprietary Software
@@ -38,6 +47,21 @@ Last Updated: November 3, 2025
         .rtl { direction: rtl; }
         .ltr { direction: ltr; }
     </style>
+
+<!-- Optional unified console logging (no UI impact) -->
+<script>
+(function initTermsHelpers(){
+  try {
+    if (!window.log) {
+      window.log = function(label, message, type) {
+        var colors = { info: 'color:#00aaff', warn: 'color:#ffaa00', error: 'color:#ff5555' };
+        console.log('%c[' + label + ']', colors[type] || '', message);
+      };
+    }
+    log('PAGE','terms.html loaded','info');
+  } catch (e) { /* no-op */ }
+})();
+</script>
 </head>
 <body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
     <div id="root"></div>
@@ -357,7 +381,8 @@ For legal inquiries regarding intellectual property or trade secrets, please use
                         <!-- Legal Notice - Hebrew Prevails -->
                         <div class="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-6">
                             <p class="text-yellow-900 font-bold text-center">
-                                {language === 'he' ? '📜 הודעה משפטית' : '📜 Legal Notice'}
+      ${currentLang === 'he' ? '📜 הודעה משפטית' : '📜 Legal Notice'}
+
                             </p>
                             <p class="text-yellow-800 text-sm text-center mt-1">
                                 {language === 'he' 
