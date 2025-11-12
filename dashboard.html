@@ -1,0 +1,468 @@
+<!--
+════════════════════════════════════════════════════════════════
+© 2025 VALERY LAVROV - ALL RIGHTS RESERVED
+Building Payment Tracker - Proprietary Software
+
+TRADE SECRET NOTICE:
+This software contains confidential and proprietary information
+protected under Israeli Trade Secret Law (Protection of Trade 
+Secrets Law, 5765-2005) and international copyright law.
+
+UNAUTHORIZED USE PROHIBITED:
+- Copying, modification, or reverse engineering is strictly forbidden
+- Sharing credentials or code constitutes breach of contract
+- Violators will be prosecuted under Israeli law
+
+Patent Pending: Business logic and pricing algorithms
+Author: Valery Lavrov
+Email: support@buildingtracker.com
+Last Updated: November 12, 2025
+════════════════════════════════════════════════════════════════
+-->
+<!-- Developer Header Comment -->
+<!-- ==========================================================
+BUILDING PAYMENT TRACKER - MANAGER DASHBOARD
+Author: Valery Lavrov
+Purpose: Building selector with progressive disclosure (1/3/10+ UI modes)
+Tier: 1 (baiti-f1bb5)
+Last Updated: 2025-11-12
+============================================================== -->
+
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Building Payment Tracker</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+  <!-- React -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // ============================================================
+    // 🔐 Firebase Initialization (Tier 1 - Dashboard)
+    // ============================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyA0ZH1t5TCaQEtU8FxgnjQP4X2JfJlgX08",
+      authDomain: "baiti-f1bb5.firebaseapp.com",
+      databaseURL: "https://baiti-f1bb5-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "baiti-f1bb5",
+      storageBucket: "baiti-f1bb5.firebasestorage.app",
+      messagingSenderId: "395782765837",
+      appId: "1:395782765837:web:0775960f26a558d3e5c444"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    // ============================================================
+    // 🧩 Logging Helper
+    // ============================================================
+    function log(label, message, type = 'info') {
+      const colors = { info: 'color:#00aaff', warn: 'color:#ffaa00', error: 'color:#ff5555' };
+      console.log(`%c[${label}]`, colors[type] || '', message);
+    }
+
+    // ============================================================
+    // 🌍 Translations
+    // ============================================================
+    const translations = {
+      he: {
+        welcome: 'שלום',
+        selectBuilding: 'בחר בניין',
+        apartments: 'דירות',
+        enter: 'כניסה',
+        logout: 'התנתק',
+        noBuildings: 'אין בניינים משויכים',
+        loading: 'טוען...',
+        search: 'חיפוש...',
+        filterCity: 'סנן לפי עיר',
+        allCities: 'כל הערים'
+      },
+      en: {
+        welcome: 'Welcome',
+        selectBuilding: 'Select Building',
+        apartments: 'Apartments',
+        enter: 'Enter',
+        logout: 'Logout',
+        noBuildings: 'No buildings assigned',
+        loading: 'Loading...',
+        search: 'Search...',
+        filterCity: 'Filter by city',
+        allCities: 'All Cities'
+      },
+      ru: {
+        welcome: 'Добро пожаловать',
+        selectBuilding: 'Выберите здание',
+        apartments: 'Квартиры',
+        enter: 'Войти',
+        logout: 'Выйти',
+        noBuildings: 'Нет назначенных зданий',
+        loading: 'Загрузка...',
+        search: 'Поиск...',
+        filterCity: 'Фильтр по городу',
+        allCities: 'Все города'
+      }
+    };
+
+    // ============================================================
+    // 📱 Main Dashboard Component
+    // ============================================================
+    function Dashboard() {
+      const [user, setUser] = useState(null);
+      const [managerData, setManagerData] = useState(null);
+      const [buildings, setBuildings] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [lang, setLang] = useState('he');
+      const [searchTerm, setSearchTerm] = useState('');
+      const [filterCity, setFilterCity] = useState('');
+
+      const t = translations[lang];
+
+      // ============================================================
+      // 🔐 Authentication Check
+      // ============================================================
+      useEffect(() => {
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+        const unsubscribe = auth.onAuthStateChanged(async (authUser) => {
+          if (!authUser) {
+            log('AUTH', 'Not logged in → redirect to index.html', 'warn');
+            window.location.href = 'index.html';
+            return;
+          }
+
+          try {
+            // Check user role
+            const userSnapshot = await db.ref('users/' + authUser.uid).once('value');
+            const userData = userSnapshot.val();
+
+            if (!userData || userData.role !== 'manager') {
+              alert('Access denied. Managers only.');
+              log('AUTH', 'Non-manager tried to access dashboard', 'error');
+              await auth.signOut();
+              window.location.href = 'index.html';
+              return;
+            }
+
+            // Load manager profile
+            const managerSnapshot = await db.ref('managers/' + authUser.uid).once('value');
+            const managerInfo = managerSnapshot.val();
+
+            if (!managerInfo) {
+              alert('Manager profile not found.');
+              await auth.signOut();
+              window.location.href = 'index.html';
+              return;
+            }
+
+            setUser(authUser);
+            setManagerData(managerInfo);
+            log('AUTH', `Manager authenticated: ${authUser.email}`, 'info');
+
+            // Load buildings
+            await loadBuildings(managerInfo.buildings || []);
+          } catch (err) {
+            log('AUTH', 'Error: ' + err.message, 'error');
+            alert('Error loading profile.');
+            window.location.href = 'index.html';
+          }
+        });
+
+        return () => unsubscribe();
+      }, []);
+
+      // ============================================================
+      // 🏢 Load Buildings Data
+      // ============================================================
+      async function loadBuildings(buildingIds) {
+        if (!buildingIds || buildingIds.length === 0) {
+          setBuildings([]);
+          setLoading(false);
+          return;
+        }
+
+        try {
+          const buildingsData = [];
+          
+          for (const id of buildingIds) {
+            const snapshot = await db.ref('buildingConfigs/' + id).once('value');
+            const config = snapshot.val();
+            
+            if (config) {
+              buildingsData.push({
+                id: id,
+                ...config
+              });
+            }
+          }
+
+          setBuildings(buildingsData);
+          log('DB', `Loaded ${buildingsData.length} buildings`, 'info');
+        } catch (err) {
+          log('DB', 'Error loading buildings: ' + err.message, 'error');
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      // ============================================================
+      // 🔍 Filter Buildings
+      // ============================================================
+      const filteredBuildings = buildings.filter(b => {
+        const matchesSearch = b.buildingName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              b.address?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCity = !filterCity || b.city === filterCity;
+        return matchesSearch && matchesCity;
+      });
+
+      const cities = [...new Set(buildings.map(b => b.city).filter(Boolean))];
+
+      // ============================================================
+      // 🎨 Progressive Disclosure Logic
+      // ============================================================
+      const buildingCount = buildings.length;
+
+      // ============================================================
+      // 🚪 Logout
+      // ============================================================
+      async function handleLogout() {
+        await auth.signOut();
+        window.location.href = 'index.html';
+      }
+
+      // ============================================================
+      // 🌍 Language Switcher
+      // ============================================================
+      function switchLanguage(newLang) {
+        setLang(newLang);
+        document.documentElement.lang = newLang;
+        document.documentElement.dir = newLang === 'he' ? 'rtl' : 'ltr';
+      }
+
+      // ============================================================
+      // 📺 Render Loading State
+      // ============================================================
+      if (loading) {
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-white text-2xl">{t.loading}</div>
+          </div>
+        );
+      }
+
+      // ============================================================
+      // 📺 Render No Buildings State
+      // ============================================================
+      if (buildingCount === 0) {
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="bg-white rounded-lg shadow-xl p-8 text-center">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">{t.noBuildings}</h2>
+              <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded">
+                {t.logout}
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // ============================================================
+      // 📺 SCENARIO 1: Single Building (Hero Card)
+      // ============================================================
+      if (buildingCount === 1) {
+        const building = buildings[0];
+        
+        return (
+          <div className="min-h-screen flex items-center justify-center p-4">
+            {/* Language Switcher */}
+            <div className="absolute top-4 left-4 flex gap-2">
+              <button onClick={() => switchLanguage('he')} className={`px-3 py-1 rounded ${lang === 'he' ? 'bg-white text-purple-600' : 'bg-purple-700 text-white'}`}>עב</button>
+              <button onClick={() => switchLanguage('en')} className={`px-3 py-1 rounded ${lang === 'en' ? 'bg-white text-purple-600' : 'bg-purple-700 text-white'}`}>EN</button>
+              <button onClick={() => switchLanguage('ru')} className={`px-3 py-1 rounded ${lang === 'ru' ? 'bg-white text-purple-600' : 'bg-purple-700 text-white'}`}>RU</button>
+            </div>
+
+            {/* Logout Button */}
+            <button onClick={handleLogout} className="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+              {t.logout}
+            </button>
+
+            {/* Hero Card */}
+            <div className="bg-white rounded-2xl shadow-2xl p-12 max-w-md w-full text-center">
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">{t.welcome}, {managerData?.displayName || user?.email}</h1>
+              
+              <div className="my-8">
+                <div className="text-6xl mb-4">🏢</div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">{building.buildingName}</h2>
+                <p className="text-gray-600 mb-1">{building.address}</p>
+                <p className="text-gray-500">{building.apartmentCount} {t.apartments}</p>
+              </div>
+
+              <button 
+                onClick={() => window.location.href = `building.html?id=${building.id}`}
+                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-4 px-8 rounded-lg text-xl shadow-lg transform transition hover:scale-105"
+              >
+                {t.enter} →
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // ============================================================
+      // 📺 SCENARIO 2: 2-5 Buildings (Card Grid)
+      // ============================================================
+      if (buildingCount <= 5) {
+        return (
+          <div className="min-h-screen p-6">
+            {/* Header */}
+            <div className="max-w-6xl mx-auto mb-8">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h1 className="text-3xl font-bold text-white">{t.welcome}, {managerData?.displayName || user?.email}</h1>
+                  <p className="text-purple-200">{t.selectBuilding}</p>
+                </div>
+                
+                <div className="flex gap-3">
+                  {/* Language Switcher */}
+                  <button onClick={() => switchLanguage('he')} className={`px-3 py-2 rounded ${lang === 'he' ? 'bg-white text-purple-600' : 'bg-purple-700 text-white'}`}>עב</button>
+                  <button onClick={() => switchLanguage('en')} className={`px-3 py-2 rounded ${lang === 'en' ? 'bg-white text-purple-600' : 'bg-purple-700 text-white'}`}>EN</button>
+                  <button onClick={() => switchLanguage('ru')} className={`px-3 py-2 rounded ${lang === 'ru' ? 'bg-white text-purple-600' : 'bg-purple-700 text-white'}`}>RU</button>
+                  
+                  <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+                    {t.logout}
+                  </button>
+                </div>
+              </div>
+
+              {/* Card Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {buildings.map(building => (
+                  <div key={building.id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition transform hover:scale-105">
+                    <div className="text-4xl mb-4">🏢</div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">{building.buildingName}</h3>
+                    <p className="text-gray-600 text-sm mb-1">{building.address}</p>
+                    <p className="text-gray-500 text-sm mb-4">{building.city}</p>
+                    <p className="text-purple-600 font-semibold mb-4">{building.apartmentCount} {t.apartments}</p>
+                    
+                    <button 
+                      onClick={() => window.location.href = `building.html?id=${building.id}`}
+                      className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow transition"
+                    >
+                      {t.enter} →
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // ============================================================
+      // 📺 SCENARIO 3: 6+ Buildings (List View with Search)
+      // ============================================================
+      return (
+        <div className="min-h-screen p-6">
+          {/* Header */}
+          <div className="max-w-6xl mx-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-3xl font-bold text-white">{t.welcome}, {managerData?.displayName || user?.email}</h1>
+                <p className="text-purple-200">{buildingCount} {t.selectBuilding}</p>
+              </div>
+              
+              <div className="flex gap-3">
+                {/* Language Switcher */}
+                <button onClick={() => switchLanguage('he')} className={`px-3 py-2 rounded ${lang === 'he' ? 'bg-white text-purple-600' : 'bg-purple-700 text-white'}`}>עב</button>
+                <button onClick={() => switchLanguage('en')} className={`px-3 py-2 rounded ${lang === 'en' ? 'bg-white text-purple-600' : 'bg-purple-700 text-white'}`}>EN</button>
+                <button onClick={() => switchLanguage('ru')} className={`px-3 py-2 rounded ${lang === 'ru' ? 'bg-white text-purple-600' : 'bg-purple-700 text-white'}`}>RU</button>
+                
+                <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+                  {t.logout}
+                </button>
+              </div>
+            </div>
+
+            {/* Search & Filter */}
+            <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input 
+                  type="text" 
+                  placeholder={t.search}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                
+                <select 
+                  value={filterCity}
+                  onChange={(e) => setFilterCity(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">{t.allCities}</option>
+                  {cities.map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Building List */}
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+              {filteredBuildings.map(building => (
+                <div key={building.id} className="border-b border-gray-200 p-4 hover:bg-gray-50 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800">{building.buildingName}</h3>
+                    <p className="text-sm text-gray-600">{building.address}</p>
+                    <p className="text-sm text-gray-500">{building.city} • {building.apartmentCount} {t.apartments}</p>
+                  </div>
+                  
+                  <button 
+                    onClick={() => window.location.href = `building.html?id=${building.id}`}
+                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-2 px-6 rounded-lg shadow transition"
+                  >
+                    {t.enter} →
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================================
+    // 🚀 Render App
+    // ============================================================
+    ReactDOM.render(<Dashboard />, document.getElementById('root'));
+  </script>
+</body>
+
+</html>
