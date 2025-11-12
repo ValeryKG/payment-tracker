@@ -1,4 +1,13 @@
 <!--
+==============================================================
+BUILDING PAYMENT TRACKER - CONTACT (Static Page)
+Author: Valery Lavrov
+Purpose: Contact & Support | Bilingual (EN/HE) | Tailwind UI
+Last Updated: 2025-11-12
+==============================================================
+-->
+
+<!--
 ════════════════════════════════════════════════════════════════
 © 2025 VALERY LAVROV - ALL RIGHTS RESERVED
 Building Payment Tracker - Proprietary Software
@@ -38,6 +47,21 @@ Last Updated: November 4, 2025
         .rtl { direction: rtl; }
         .ltr { direction: ltr; }
     </style>
+
+<!-- Optional unified console logging (no UI impact) -->
+<script>
+(function initContactHelpers(){
+  try {
+    if (!window.log) {
+      window.log = function(label, message, type) {
+        var colors = { info: 'color:#00aaff', warn: 'color:#ffaa00', error: 'color:#ff5555' };
+        console.log('%c[' + label + ']', colors[type] || '', message);
+      };
+    }
+    log('PAGE','contact.html loaded','info');
+  } catch (e) { /* no-op */ }
+})();
+</script>
 </head>
 <body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
     <div id="root"></div>
