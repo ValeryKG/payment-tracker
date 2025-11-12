@@ -199,6 +199,52 @@ Last Updated: 2025-11-12
       `;
 
       loadBuildings();
+attachFormHandler();
+    }
+
+    // ============================================================
+    // 🏗️ Building Creation Form Handler
+    // ============================================================
+    function attachFormHandler() {
+      const form = document.getElementById('createBuildingForm');
+      if (!form) return;
+      
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const buildingName = document.getElementById('buildingName').value.trim();
+        const address = document.getElementById('address').value.trim();
+        const apartmentCount = parseInt(document.getElementById('apartmentCount').value, 10);
+        const region = document.getElementById('region').value.trim();
+        const city = document.getElementById('city').value.trim();
+        const projectId = document.getElementById('firebaseProjectId').value.trim();
+        
+        if (!buildingName || !address || !apartmentCount || !projectId) {
+          alert('Please fill all required fields.');
+          return;
+        }
+        
+        try {
+          const buildingId = projectId.replace('-payment', '');
+          
+          await db.ref('buildingConfigs/' + buildingId).set({
+            buildingName: buildingName,
+            address: address,
+            apartmentCount: apartmentCount,
+            region: region,
+            city: city,
+            firebaseProjectId: projectId,
+            createdAt: Date.now()
+          });
+          
+          alert('✅ Building created successfully!');
+          log('DB', 'Building created: ' + buildingId, 'info');
+          form.reset();
+        } catch (err) {
+          log('ERROR', 'Failed to create building: ' + err.message, 'error');
+          alert('Error creating building.');
+        }
+      });
     }
 
     // ============================================================
@@ -256,7 +302,7 @@ Last Updated: 2025-11-12
         }
       `;
       document.head.appendChild(style);
-    });
+    }); 
   </script>
 </body>
 
