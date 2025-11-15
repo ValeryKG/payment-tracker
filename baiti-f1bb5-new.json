@@ -1,0 +1,182 @@
+{
+  "hubData": {
+    "users": {
+      "DeOgzsaV4Md8Wi4yxulhrhRTbVy2": {
+        "createdAt": "2025-11-03T10:00:00Z",
+        "email": "admin@test.com",
+        "role": "admin",
+        "username": "admin"
+      },
+      "dMFeBYnXvoOlm90dBdyaZ3eRcVx2": {
+        "createdAt": "2025-11-03T16:30:00Z",
+        "email": "manager@test.com",
+        "role": "manager",
+        "username": "manager",
+        "buildings": ["demo1"]
+      }
+    },
+    "buildingConfigs": {
+      "demo1": {
+        "buildingName": "Demo Building 1",
+        "address": "123 Demo Street, Tel Aviv",
+        "apartmentCount": 17,
+        "region": "Tel Aviv",
+        "city": "Tel Aviv",
+        "createdAt": 1731600000000,
+        "archived": false
+      }
+    }
+  },
+  "buildings": {
+    "demo1": {
+      "buildingData": {
+        "buildingSettings": {
+          "apartmentCount": 16,
+          "buildingName": "My Building",
+          "country": "Israel",
+          "currency": "NIS",
+          "locked": true,
+          "paymentLinks": {
+            "bankDetails": "",
+            "bitLink": "",
+            "otherPaymentLink": "",
+            "whatsappGroupLink": ""
+          },
+          "privacyTier": "tier1",
+          "setupComplete": true
+        },
+        "monthlyBills": {
+          "2025-11": {
+            "amount": 150,
+            "apartments": {
+              "1": {
+                "paid": false
+              },
+              "2": {
+                "paid": false
+              },
+              "3": {
+                "amount": 150,
+                "date": "2025-11-12T21:11:27.342Z",
+                "paid": true
+              },
+              "4": {
+                "amount": 150,
+                "date": "2025-11-13T07:07:57.367Z",
+                "paid": true
+              },
+              "5": {
+                "amount": 150,
+                "date": "2025-11-12T21:11:18.113Z",
+                "paid": true
+              },
+              "6": {
+                "amount": 150,
+                "date": "2025-11-12T21:30:34.903Z",
+                "paid": true
+              },
+              "7": {
+                "amount": 150,
+                "paid": false
+              },
+              "8": {
+                "paid": false
+              },
+              "9": {
+                "paid": false
+              },
+              "10": {
+                "paid": false
+              },
+              "11": {
+                "amount": 150,
+                "date": "2025-11-12T21:11:28.686Z",
+                "paid": true
+              },
+              "12": {
+                "amount": 150,
+                "date": "2025-11-12T21:11:25.478Z",
+                "paid": true
+              },
+              "13": {
+                "amount": 150,
+                "paid": false
+              },
+              "14": {
+                "amount": 150,
+                "date": "2025-11-12T21:11:22.342Z",
+                "paid": true
+              },
+              "15": {
+                "paid": false
+              },
+              "16": {
+                "paid": false
+              }
+            },
+            "dueDay": 5
+          },
+          "2025-12": {
+            "amount": 150,
+            "apartments": {
+              "1": {
+                "paid": false
+              },
+              "2": {
+                "paid": false
+              },
+              "3": {
+                "paid": false
+              },
+              "4": {
+                "paid": false
+              },
+              "5": {
+                "paid": false
+              },
+              "6": {
+                "paid": false
+              },
+              "7": {
+                "paid": false
+              },
+              "8": {
+                "paid": false
+              },
+              "9": {
+                "paid": false
+              },
+              "10": {
+                "paid": false
+              },
+              "11": {
+                "paid": false
+              },
+              "12": {
+                "paid": false
+              },
+              "13": {
+                "paid": false
+              },
+              "14": {
+                "paid": false
+              },
+              "15": {
+                "paid": false
+              },
+              "16": {
+                "paid": false
+              }
+            },
+            "dueDay": 5
+          }
+        }
+      }
+    }
+  },
+  "managerAssignments": {
+    "dMFeBYnXvoOlm90dBdyaZ3eRcVx2": {
+      "demo1": true
+    }
+  }
+}
